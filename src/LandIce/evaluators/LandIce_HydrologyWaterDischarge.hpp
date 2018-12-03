@@ -13,6 +13,7 @@
 #include "Phalanx_MDField.hpp"
 
 #include "Albany_Layouts.hpp"
+#include "PHAL_Dimension.hpp"
 
 namespace LandIce
 {
@@ -62,6 +63,7 @@ private:
   PHX::MDField<const ScalarT>       gradPhiNorm;
   PHX::MDField<const ScalarT>       h;
   PHX::MDField<const ScalarT,Dim>   regularizationParam;
+  PHX::MDField<const ScalarT>       kappa;
 
   // Output:
   PHX::MDField<ScalarT>   q;
@@ -70,7 +72,6 @@ private:
   int numDim;
   std::string   sideSetName;
 
-  double k_0;
   double alpha;
   double beta;
 
