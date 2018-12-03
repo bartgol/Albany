@@ -8,16 +8,22 @@
 #include "Phalanx_TypeStrings.hpp"
 #include "Teuchos_VerboseObject.hpp"
 
+#include "Albany_DiscretizationUtils.hpp"
+
+#include "LandIce_HydrologyWaterDischarge.hpp"
+#include "LandIce_ParamEnum.hpp"
+
 namespace LandIce
 {
 
 template<typename EvalT, typename Traits, bool IsStokes>
 HydrologyWaterDischarge<EvalT, Traits, IsStokes>::
 HydrologyWaterDischarge (const Teuchos::ParameterList& p,
-                         const Teuchos::RCP<Albany::Layouts>& dl) :
-  gradPhi (p.get<std::string> ("Hydraulic Potential Gradient Variable Name"), dl->qp_gradient),
-  h       (p.get<std::string> ("Water Thickness Variable Name"), dl->qp_scalar),
-  q       (p.get<std::string> ("Water Discharge Variable Name"), dl->qp_gradient)
+                         const Teuchos::RCP<Albany::Layouts>& dl)
+ : gradPhi (p.get<std::string> ("Hydraulic Potential Gradient Variable Name"), dl->qp_gradient)
+ , h       (p.get<std::string> ("Water Thickness Variable Name"), dl->qp_scalar)
+ , q       (p.get<std::string> ("Water Discharge Variable Name"), dl->qp_gradient)
+ , kappa   (ParamEnumName::Kappa, dl->shared_param)
 {
   /*
    *  The water discharge follows the following Darcy-like form
@@ -49,13 +55,13 @@ HydrologyWaterDischarge (const Teuchos::ParameterList& p,
 
   this->addDependentField(gradPhi);
   this->addDependentField(h);
+  this->addDependentField(kappa);
 
   this->addEvaluatedField(q);
 
   // Setting parameters
   Teuchos::ParameterList& hydrology = *p.get<Teuchos::ParameterList*>("LandIce Hydrology");
 
-  k_0   = hydrology.get<double>("Darcy Law Transmissivity");
   alpha = hydrology.get<double>("Darcy Law Water Thickness Exponent");
   beta  = hydrology.get<double>("Darcy Law Potential Gradient Norm Exponent");
 
@@ -85,7 +91,7 @@ HydrologyWaterDischarge (const Teuchos::ParameterList& p,
 //**********************************************************************
 template<typename EvalT, typename Traits, bool IsStokes>
 void HydrologyWaterDischarge<EvalT, Traits, IsStokes>::
-postRegistrationSetup(typename Traits::SetupData d,
+postRegistrationSetup(typename Traits::SetupData /* d */,
                       PHX::FieldManager<Traits>& fm)
 {
   this->utils.setFieldData(gradPhi,fm);
@@ -128,6 +134,7 @@ void HydrologyWaterDischarge<EvalT, Traits, IsStokes>::evaluateFieldsCell (typen
     printedReg = regularization;
   }
 
+  const ScalarT k_0 = kappa(0);
   if (needsGradPhiNorm) {
     double grad_norm_exponent = beta - 2.0;
     for (int cell=0; cell < workset.numCells; ++cell) {
@@ -174,6 +181,7 @@ evaluateFieldsSide (typename Traits::EvalData workset)
     printedReg = regularization;
   }
 
+  const ScalarT k_0 = kappa(0);
   const std::vector<Albany::SideStruct>& sideSet = workset.sideSets->at(sideSetName);
   for (auto const& it_side : sideSet)
   {

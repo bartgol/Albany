@@ -9,16 +9,18 @@ namespace LandIce
 enum class ParamEnum
 {
   Alpha        = 0,
-  Lambda       = 1,
-  MuCoulomb    = 2,
-  MuPowerLaw   = 3,
-  Power        = 4,
-  Homotopy     = 5
+  Kappa        = 1,
+  Lambda       = 2,
+  MuCoulomb    = 3,
+  MuPowerLaw   = 4,
+  Power        = 5,
+  Homotopy     = 6
 };
 
 namespace ParamEnumName
 {
   static const std::string Alpha         = "Hydraulic-Over-Hydrostatic Potential Ratio";
+  static const std::string Kappa         = "Darcy Law Transmissivity";
   static const std::string Lambda        = "Bed Roughness";
   static const std::string MuCoulomb     = "Coulomb Friction Coefficient";
   static const std::string MuPowerLaw    = "Power Law Coefficient";
