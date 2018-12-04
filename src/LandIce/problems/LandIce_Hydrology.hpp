@@ -37,6 +37,7 @@
 #include "LandIce_HydrologySurfaceWaterInput.hpp"
 #include "LandIce_HydrologyWaterThickness.hpp"
 #include "LandIce_ParamEnum.hpp"
+#include "LandIce_PressureCorrectedTemperature.hpp"
 #include "LandIce_SharedParameter.hpp"
 #include "LandIce_SimpleOperationEvaluator.hpp"
 #include "LandIce_ProblemUtils.hpp"
@@ -470,6 +471,10 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   // |     Creating interpolation and utilities evaluators     |
   // +---------------------------------------------------------+
 
+  // Map to physical frame
+  ev = evalUtils.constructMapToPhysicalFrameEvaluator(cellType, cubature);
+  fm0.template registerEvaluator<EvalT> (ev);
+
   // Gather solution field (possibly with time derivatives)
   if (unsteady) {
     ev = evalUtils.constructGatherSolutionEvaluator_noTransient (false, diagnostic_dofs_names);
@@ -528,6 +533,38 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
 
   // Hydraulic Potential Gradient
   ev = evalUtils.constructDOFGradInterpolationEvaluator(hydraulic_potential_name);
+  fm0.template registerEvaluator<EvalT> (ev);
+
+  // Basal Velocity
+  ev = evalUtils.getPSTUtils().constructDOFVecInterpolationEvaluator(basal_velocity_name);
+  fm0.template registerEvaluator<EvalT> (ev);
+
+  // Basal Friction (beta)
+  ev = evalUtils.getPSTUtils().constructDOFInterpolationEvaluator(beta_name);
+  fm0.template registerEvaluator<EvalT> (ev);
+
+  // Surface Water Input
+  ev = evalUtils.getPSTUtils().constructDOFInterpolationEvaluator(surface_water_input_name);
+  fm0.template registerEvaluator<EvalT> (ev);
+
+  // Geothermal Flux
+  ev = evalUtils.getPSTUtils().constructDOFInterpolationEvaluator(geothermal_flux_name);
+  fm0.template registerEvaluator<EvalT> (ev);
+
+  // Surface Height
+  ev = evalUtils.getPSTUtils().constructDOFInterpolationEvaluator(surface_height_name);
+  fm0.template registerEvaluator<EvalT> (ev);
+
+  // Surface Height on cells (needed by 'PressureCorrectedTemperature')
+  ev = evalUtils.getPSTUtils().constructNodesToCellInterpolationEvaluator(surface_height_name);
+  fm0.template registerEvaluator<EvalT> (ev);
+
+  // Ice Thickness
+  ev = evalUtils.getPSTUtils().constructDOFInterpolationEvaluator(ice_thickness_name);
+  fm0.template registerEvaluator<EvalT> (ev);
+
+  // Get coordinate of cell baricenter (needed by 'PressureCorrectedTemperature')
+  ev = evalUtils.getMSTUtils().constructQuadPointsToCellInterpolationEvaluator(Albany::coord_vec_name, dl->qp_gradient, dl->cell_gradient);
   fm0.template registerEvaluator<EvalT> (ev);
 
   // +---------------------------------------------------------+
@@ -651,12 +688,28 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   ev = Teuchos::rcp(new LandIce::HydrologyMeltingRate<EvalT,PHAL::AlbanyTraits,false>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
 
+  // --- LandIce pressure-melting temperature
+  p = Teuchos::rcp(new Teuchos::ParameterList("LandIce Pressure Corrected Temperature"));
+
+  //Input
+  p->set<std::string>("Surface Height Variable Name", surface_height_name);
+  p->set<std::string>("Coordinate Vector Variable Name", Albany::coord_vec_name);
+  p->set<Teuchos::ParameterList*>("LandIce Physical Parameters", &params->sublist("LandIce Physical Parameters"));
+  p->set<std::string>("Temperature Variable Name", ice_temperature_name);
+
+  //Output
+  p->set<std::string>("Corrected Temperature Variable Name", "corrected_temperature");
+
+  ev = createEvaluatorWithTwoScalarTypes<LandIce::PressureCorrectedTemperature,EvalT>(p,dl,FieldScalarType::ParamScalar, FieldScalarType::ParamScalar);
+
+  fm0.template registerEvaluator<EvalT>(ev);
+
   // --------- Ice Softness --------- //
   p = Teuchos::rcp(new Teuchos::ParameterList("LandIce Ice Softness"));
 
   // Input
   p->set<std::string>("Ice Softness Type",params->sublist("LandIce Hydrology").get<std::string>("Ice Softness Type","Uniform"));
-  p->set<std::string>("Temperature Variable Name",ice_temperature_name);
+  p->set<std::string>("Temperature Variable Name","corrected_temperature");
   p->set<Teuchos::ParameterList*> ("LandIce Physical Parameters",&params->sublist("LandIce Physical Parameters"));
 
   // Output
@@ -732,12 +785,12 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   //Output
   p->set<std::string>("Basal Friction Coefficient Variable Name", beta_name);
 
-  ev = createEvaluatorWithThreeScalarTypes<LandIce::BasalFrictionCoefficient, EvalT>(p,dl, FieldScalarType::Scalar, FieldScalarType::ParamScalar,FieldScalarType::ParamScalar);
+  ev = Teuchos::rcp(new LandIce::BasalFrictionCoefficient<EvalT,PHAL::AlbanyTraits,true,false,false>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
 
   //--- LandIce basal friction coefficient nodal (for output in the mesh, if needed) ---//
   p->set<bool>("Nodal",true);
-  ev = createEvaluatorWithThreeScalarTypes<LandIce::BasalFrictionCoefficient, EvalT>(p,dl, FieldScalarType::Scalar, FieldScalarType::ParamScalar,FieldScalarType::ParamScalar);
+  ev = Teuchos::rcp(new LandIce::BasalFrictionCoefficient<EvalT,PHAL::AlbanyTraits,true,false,false>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
 
   // ------- Hydrology Residual Mass Eqn-------- //
