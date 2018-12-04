@@ -468,37 +468,21 @@ evaluateFieldsCell (typename Traits::EvalData workset, ScalarT mu, ScalarT lambd
     case REGULARIZED_COULOMB:
       if (distributedLambda)
       {
-        if (logParameters)
-          for (int cell=0; cell<workset.numCells; ++cell)
-            for (int ipt=0; ipt<dim; ++ipt)
-            {
-              ScalarT tmp = u_norm(cell,ipt) / ( u_norm(cell,ipt) + lambdaField(cell,ipt)*ice_softness(cell)*std::pow(std::exp(N(cell,ipt)),3) );
-              beta(cell,ipt) = mu * std::exp(N(cell,ipt)) * std::pow( tmp, power) / u_norm(cell,ipt);
-            }
-        else
-          for (int cell=0; cell<workset.numCells; ++cell)
-            for (int ipt=0; ipt<dim; ++ipt)
-            {
-              ScalarT q = u_norm(cell,ipt) / ( u_norm(cell,ipt) + lambdaField(cell,ipt)*ice_softness(cell)*std::pow(std::max(N(cell,ipt),0.0),3) );
-              beta(cell,ipt) = mu * std::max(N(cell,ipt),0.0) * std::pow( q, power) / u_norm(cell,ipt);
-            }
+        for (int cell=0; cell<workset.numCells; ++cell)
+          for (int ipt=0; ipt<dim; ++ipt)
+          {
+            ScalarT q = u_norm(cell,ipt) / ( u_norm(cell,ipt) + lambdaField(cell,ipt)*ice_softness(cell)*std::pow(std::max(N(cell,ipt),0.0),3) );
+            beta(cell,ipt) = mu * std::max(N(cell,ipt),0.0) * std::pow( q, power) / u_norm(cell,ipt);
+          }
       }
       else
       {
-        if (logParameters)
-          for (int cell=0; cell<workset.numCells; ++cell)
-            for (int ipt=0; ipt<dim; ++ipt)
-            {
-              ScalarT q = u_norm(cell,ipt) / ( u_norm(cell,ipt) + lambda*ice_softness(cell)*std::pow(std::exp(N(cell,ipt)),3) );
-              beta(cell,ipt) = mu * std::exp(N(cell,ipt)) * std::pow( q, power) / u_norm(cell,ipt);
-            }
-        else
-          for (int cell=0; cell<workset.numCells; ++cell)
-            for (int ipt=0; ipt<dim; ++ipt)
-            {
-              ScalarT q = u_norm(cell,ipt) / ( u_norm(cell,ipt) + lambda*ice_softness(cell)*std::pow(std::max(N(cell,ipt),0.0),3) );
-              beta(cell,ipt) = mu * std::max(N(cell,ipt),0.0) * std::pow( q, power) / u_norm(cell,ipt);
-            }
+        for (int cell=0; cell<workset.numCells; ++cell)
+          for (int ipt=0; ipt<dim; ++ipt)
+          {
+            ScalarT q = u_norm(cell,ipt) / ( u_norm(cell,ipt) + lambda*ice_softness(cell)*std::pow(std::max(N(cell,ipt),0.0),3) );
+            beta(cell,ipt) = mu * std::max(N(cell,ipt),0.0) * std::pow( q, power) / u_norm(cell,ipt);
+          }
       }
       break;
 
