@@ -9,6 +9,7 @@
 #include "Teuchos_VerboseObject.hpp"
 
 #include "LandIce_ParamEnum.hpp"
+#include "LandIce_EffectivePressure.hpp"
 //uncomment the following line if you want debug output to be printed to screen
 // #define OUTPUT_TO_SCREEN
 

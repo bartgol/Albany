@@ -77,6 +77,7 @@ private:
 
   bool regularize;
   bool needsGradPhiNorm;
+  bool logParameters;
 };
 
 } // Namespace LandIce

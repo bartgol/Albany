@@ -6,6 +6,15 @@
 
 #include "Phalanx_DataLayout.hpp"
 #include "Phalanx_TypeStrings.hpp"
+#include "Teuchos_VerboseObject.hpp"
+
+#include "Albany_DiscretizationUtils.hpp"
+
+#include "LandIce_ParamEnum.hpp"
+#include "LandIce_HydrologyResidualCavitiesEqn.hpp"
+
+//uncomment the following line if you want debug output to be printed to screen
+// #define OUTPUT_TO_SCREEN
 
 namespace LandIce {
 
@@ -47,16 +56,15 @@ HydrologyResidualCavitiesEqn (const Teuchos::ParameterList& p,
   this->addEvaluatedField(residual);
 
   // Setting parameters
-  Teuchos::ParameterList& hydrology_params = *p.get<Teuchos::ParameterList*>("LandIce Hydrology Parameters");
+  Teuchos::ParameterList& eqn_params = p.get<Teuchos::ParameterList*>("LandIce Hydrology Parameters")->sublist("Cavities Equation");
   Teuchos::ParameterList& physical_params  = *p.get<Teuchos::ParameterList*>("LandIce Physical Parameters");
 
   unsteady = p.get<bool>("Unsteady");
 
   rho_i = physical_params.get<double>("Ice Density");
-  h_r = hydrology_params.get<double>("Bed Bumps Height");
-  l_r = hydrology_params.get<double>("Bed Bumps Length");
-  c_creep = hydrology_params.get<double>("Creep Closure Coefficient",1.0);
-  phi0 = hydrology_params.get<double>("Englacial Porosity",0.0);
+  h_r = eqn_params.get<double>("Bed Bumps Height");
+  l_r = eqn_params.get<double>("Bed Bumps Length");
+  phi0 = eqn_params.get<double>("Englacial Porosity",0.0);
   if (phi0>0 && unsteady) {
     has_p_dot = true;
     double rho_w = physical_params.get<double>("Water Density");
@@ -66,7 +74,7 @@ HydrologyResidualCavitiesEqn (const Teuchos::ParameterList& p,
     has_p_dot = false;
   }
 
-  use_melting = hydrology_params.get<bool>("Use Melting In Cavities Equation", false);
+  use_melting = eqn_params.get<bool>("Use Melting", false);
 
   /*
    * Scalings, needed to account for different units: ice velocity
@@ -95,12 +103,12 @@ HydrologyResidualCavitiesEqn (const Teuchos::ParameterList& p,
 
   double yr_to_s = 365.25*24*3600;
 
-  scaling_h_t = yr_to_s;
-  c_creep *= yr_to_s;
+  scaling_h_t   = yr_to_s;
+  scaling_creep = yr_to_s;
   phi0 *= 1e3;
 
   // We can solve this equation as a nodal equation
-  nodal_equation = hydrology_params.isParameter("Cavities Equation Nodal") ? hydrology_params.get<bool>("Cavities Equation Nodal") : false;
+  nodal_equation = eqn_params.get<bool>("Nodal",false);
   Teuchos::RCP<PHX::DataLayout> layout;
   if (nodal_equation) {
     layout = dl->node_scalar;
@@ -118,7 +126,11 @@ HydrologyResidualCavitiesEqn (const Teuchos::ParameterList& p,
   N            = PHX::MDField<const ScalarT>(p.get<std::string> ("Effective Pressure Variable Name"),  layout);
   u_b          = PHX::MDField<const IceScalarT>(p.get<std::string> ("Sliding Velocity Variable Name"), layout);
   ice_softness = PHX::MDField<const TempScalarT>(p.get<std::string>("Ice Softness Variable Name"), dl->cell_scalar2);
+  c_creepParam = PHX::MDField<const ScalarT>(ParamEnumName::Creep, dl->shared_param);
+  logParameters = eqn_params.get<bool>("Use Log Scalar Parameters",false);
+
   this->addDependentField(h);
+  this->addDependentField(c_creepParam);
   this->addDependentField(N);
   if (use_melting) {
     m  = PHX::MDField<const ScalarT>(p.get<std::string> ("Melting Rate Variable Name"), layout);
@@ -141,7 +153,7 @@ HydrologyResidualCavitiesEqn (const Teuchos::ParameterList& p,
 
 template<typename EvalT, typename Traits, bool IsStokes, bool ThermoCoupled>
 void HydrologyResidualCavitiesEqn<EvalT, Traits, IsStokes, ThermoCoupled>::
-postRegistrationSetup(typename Traits::SetupData d,
+postRegistrationSetup(typename Traits::SetupData /* d */,
                       PHX::FieldManager<Traits>& fm)
 {
   this->utils.setFieldData(u_b,fm);
@@ -169,16 +181,32 @@ template<typename EvalT, typename Traits, bool IsStokes, bool ThermoCoupled>
 void HydrologyResidualCavitiesEqn<EvalT, Traits, IsStokes, ThermoCoupled>::
 evaluateFields (typename Traits::EvalData workset)
 {
+  ScalarT c_creep = logParameters ? ScalarT(exp(c_creepParam(0))) : c_creepParam(0);
+
+#ifdef OUTPUT_TO_SCREEN
+  static ScalarT printedCreep = ScalarT(std::numeric_limits<double>::quiet_NaN());
+  Teuchos::RCP<Teuchos::FancyOStream> output(Teuchos::VerboseObjectBase::getDefaultOStream());
+  int procRank = Teuchos::GlobalMPISession::getRank();
+  int numProcs = Teuchos::GlobalMPISession::getNProc();
+  output->setProcRankAndSize (procRank, numProcs);
+  output->setOutputToRootOnly (0);
+  if (printedCreep!=c_creep) {
+    *output << "[HydrologyResidualCavitiesEqn" << PHX::typeAsString<EvalT>() << "] c_creep = " << c_creep << ")\n";
+    printedCreep = c_creep;
+  }
+#endif
+  c_creep *= scaling_creep;
+
   if (IsStokes) {
-    evaluateFieldsSide(workset);
+    evaluateFieldsSide(workset,c_creep);
   } else {
-    evaluateFieldsCell(workset);
+    evaluateFieldsCell(workset,c_creep);
   }
 }
 
 template<typename EvalT, typename Traits, bool IsStokes, bool ThermoCoupled>
 void HydrologyResidualCavitiesEqn<EvalT, Traits, IsStokes, ThermoCoupled>::
-evaluateFieldsSide (typename Traits::EvalData workset)
+evaluateFieldsSide (typename Traits::EvalData workset, const ScalarT c_creep)
 {
   // h' = W_O - W_C = (m/rho_i + u_b*(h_b-h)/l_b) - AhN^n
   ScalarT res_node, res_qp, zero(0.0);
@@ -223,7 +251,7 @@ evaluateFieldsSide (typename Traits::EvalData workset)
 
 template<typename EvalT, typename Traits, bool IsStokes, bool ThermoCoupled>
 void HydrologyResidualCavitiesEqn<EvalT, Traits, IsStokes, ThermoCoupled>::
-evaluateFieldsCell (typename Traits::EvalData workset)
+evaluateFieldsCell (typename Traits::EvalData workset, const ScalarT c_creep)
 {
   // h' = W_O - W_C = (m/rho_i + u_b*(h_b-h)/l_b) - AhN^n
   ScalarT res_node, res_qp, zero(0.0);

@@ -163,31 +163,31 @@ protected:
   /// Boolean marking whether SDBCs are used
   bool use_sdbcs_;
 
-  static constexpr char water_pressure_name[]                    = "water_pressure";
-  static constexpr char water_thickness_name[]                   = "water_thickness";
-  static constexpr char till_water_storage_name[]                = "till_water_storage";
-  static constexpr char water_pressure_dot_name[]                = "water_pressure_dot";
-  static constexpr char water_thickness_dot_name[]               = "water_thickness_dot";
-  static constexpr char till_water_storage_dot_name[]            = "till_water_storage_dot";
+  static constexpr char water_pressure_name[]           = "water_pressure";
+  static constexpr char water_thickness_name[]          = "water_thickness";
+  static constexpr char till_water_storage_name[]       = "till_water_storage";
+  static constexpr char water_pressure_dot_name[]       = "water_pressure_dot";
+  static constexpr char water_thickness_dot_name[]      = "water_thickness_dot";
+  static constexpr char till_water_storage_dot_name[]   = "till_water_storage_dot";
 
-  static constexpr char hydraulic_potential_name[]               = "hydraulic_potential";
-  static constexpr char hydraulic_potential_gradient_name[]      = "hydraulic_potential Gradient";
-  static constexpr char hydraulic_potential_gradient_norm_name[] = "hydraulic_potential Gradient Norm";
-  static constexpr char ice_softness_name[]                      = "ice_softness";
-  static constexpr char ice_overburden_name[]                    = "ice_overburden";
-  static constexpr char effective_pressure_name[]                = "effective_pressure";
-  static constexpr char ice_temperature_name[]                   = "ice_temperature";
-  static constexpr char ice_thickness_name[]                     = "ice_thickness";
-  static constexpr char surface_height_name[]                    = "surface_height";
-  static constexpr char beta_name[]                              = "beta";
-  static constexpr char melting_rate_name[]                      = "melting_rate";
-  static constexpr char surface_water_input_name[]               = "surface_water_input";
-  static constexpr char surface_mass_balance_name[]              = "surface_mass_balance";
-  static constexpr char geothermal_flux_name[]                   = "geothermal_flux";
-  static constexpr char water_discharge_name[]                   = "water_discharge";
-  static constexpr char sliding_velocity_name[]                  = "sliding_velocity";
-  static constexpr char basal_velocity_name[]                    = "basal_velocity";
-  static constexpr char basal_grav_water_potential_name[]        = "basal_gravitational_water_potential";
+  static constexpr char hydropotential_name[]           = "hydropotential";
+  static constexpr char hydropotential_grad_name[]      = "hydropotential Gradient";
+  static constexpr char hydropotential_grad_norm_name[] = "hydropotential Gradient Norm";
+  static constexpr char ice_softness_name[]             = "ice_softness";
+  static constexpr char ice_overburden_name[]           = "ice_overburden";
+  static constexpr char effective_pressure_name[]       = "effective_pressure";
+  static constexpr char ice_temperature_name[]          = "ice_temperature";
+  static constexpr char ice_thickness_name[]            = "ice_thickness";
+  static constexpr char surface_height_name[]           = "surface_height";
+  static constexpr char beta_name[]                     = "beta";
+  static constexpr char melting_rate_name[]             = "melting_rate";
+  static constexpr char surface_water_input_name[]      = "surface_water_input";
+  static constexpr char surface_mass_balance_name[]     = "surface_mass_balance";
+  static constexpr char geothermal_flux_name[]          = "geothermal_flux";
+  static constexpr char water_discharge_name[]          = "water_discharge";
+  static constexpr char sliding_velocity_name[]         = "sliding_velocity";
+  static constexpr char basal_velocity_name[]           = "basal_velocity";
+  static constexpr char grav_hydropotential_name[]      = "grav_hydropotential";
 };
 
 // ===================================== IMPLEMENTATION ======================================= //
@@ -292,6 +292,7 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   std::string fieldType, fieldUsage, meshPart;
   bool nodal_state, scalar_state;
   std::map<std::string, bool> is_input_state_scalar;
+  std::map<std::string, bool> is_input_state_nodal;
   // Loop over the number of required fields
   for (int ifield=0; ifield<num_fields; ++ifield)
   {
@@ -401,6 +402,7 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
         fm0.template registerEvaluator<EvalT>(ev);
       }
       is_input_state_scalar[stateName] = scalar_state;
+      is_input_state_nodal[stateName]  = nodal_state;
     }
   }
 
@@ -502,13 +504,15 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   fm0.template registerEvaluator<EvalT> (ev);
 
   // Interpolating all input fields
-  for (auto it : is_input_state_scalar) {
+  for (auto it : is_input_state_nodal) {
     if (it.second) {
-      ev = evalUtils.getPSTUtils().constructDOFInterpolationEvaluator(it.first);
-    } else {
-      ev = evalUtils.getPSTUtils().constructDOFVecInterpolationEvaluator(it.first);
+      if (is_input_state_scalar.at(it.first)) {
+        ev = evalUtils.getPSTUtils().constructDOFInterpolationEvaluator(it.first);
+      } else {
+        ev = evalUtils.getPSTUtils().constructDOFVecInterpolationEvaluator(it.first);
+      }
+      fm0.template registerEvaluator<EvalT> (ev);
     }
-    fm0.template registerEvaluator<EvalT> (ev);
   }
 
   // Interpolate Water Pressure
@@ -532,35 +536,11 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   }
 
   // Hydraulic Potential Gradient
-  ev = evalUtils.constructDOFGradInterpolationEvaluator(hydraulic_potential_name);
-  fm0.template registerEvaluator<EvalT> (ev);
-
-  // Basal Velocity
-  ev = evalUtils.getPSTUtils().constructDOFVecInterpolationEvaluator(basal_velocity_name);
-  fm0.template registerEvaluator<EvalT> (ev);
-
-  // Basal Friction (beta)
-  ev = evalUtils.getPSTUtils().constructDOFInterpolationEvaluator(beta_name);
-  fm0.template registerEvaluator<EvalT> (ev);
-
-  // Surface Water Input
-  ev = evalUtils.getPSTUtils().constructDOFInterpolationEvaluator(surface_water_input_name);
-  fm0.template registerEvaluator<EvalT> (ev);
-
-  // Geothermal Flux
-  ev = evalUtils.getPSTUtils().constructDOFInterpolationEvaluator(geothermal_flux_name);
-  fm0.template registerEvaluator<EvalT> (ev);
-
-  // Surface Height
-  ev = evalUtils.getPSTUtils().constructDOFInterpolationEvaluator(surface_height_name);
+  ev = evalUtils.constructDOFGradInterpolationEvaluator(hydropotential_name);
   fm0.template registerEvaluator<EvalT> (ev);
 
   // Surface Height on cells (needed by 'PressureCorrectedTemperature')
   ev = evalUtils.getPSTUtils().constructNodesToCellInterpolationEvaluator(surface_height_name);
-  fm0.template registerEvaluator<EvalT> (ev);
-
-  // Ice Thickness
-  ev = evalUtils.getPSTUtils().constructDOFInterpolationEvaluator(ice_thickness_name);
   fm0.template registerEvaluator<EvalT> (ev);
 
   // Get coordinate of cell baricenter (needed by 'PressureCorrectedTemperature')
@@ -596,7 +576,7 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   p->set<Teuchos::ParameterList*> ("LandIce Physical Parameters",&params->sublist("LandIce Physical Parameters"));
 
   //Output
-  p->set<std::string> ("Basal Gravitational Water Potential Variable Name",basal_grav_water_potential_name);
+  p->set<std::string> ("Basal Gravitational Water Potential Variable Name",grav_hydropotential_name);
 
   ev = Teuchos::rcp(new LandIce::BasalGravitationalWaterPotential<EvalT,PHAL::AlbanyTraits,false>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
@@ -631,7 +611,7 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   p = Teuchos::rcp(new Teuchos::ParameterList("Hydraulic Potential"));
 
   //Input
-  p->set<std::string>("Basal Gravitational Water Potential Variable Name",basal_grav_water_potential_name);
+  p->set<std::string>("Basal Gravitational Water Potential Variable Name",grav_hydropotential_name);
   p->set<std::string>("Water Pressure Variable Name", water_pressure_name);
   p->set<std::string>("Water Thickness Variable Name", water_thickness_name);
   p->set<bool>("Nodal", false);
@@ -640,7 +620,7 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   p->set<Teuchos::ParameterList*>("LandIce Hydrology", &params->sublist("LandIce Hydrology"));
 
   //Output
-  p->set<std::string> ("Hydraulic Potential Variable Name",hydraulic_potential_name);
+  p->set<std::string> ("Hydraulic Potential Variable Name",hydropotential_name);
 
   ev = Teuchos::rcp(new LandIce::HydraulicPotential<EvalT,PHAL::AlbanyTraits,false>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
@@ -655,8 +635,8 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   p = Teuchos::rcp(new Teuchos::ParameterList("Hydrology Water Discharge"));
 
   p->set<std::string>("Water Thickness Variable Name",water_thickness_name);
-  p->set<std::string>("Hydraulic Potential Gradient Variable Name",hydraulic_potential_gradient_name);
-  p->set<std::string>("Hydraulic Potential Gradient Norm Variable Name",hydraulic_potential_gradient_norm_name);
+  p->set<std::string>("Hydraulic Potential Gradient Variable Name",hydropotential_grad_name);
+  p->set<std::string>("Hydraulic Potential Gradient Norm Variable Name",hydropotential_grad_norm_name);
   p->set<std::string>("Regularization Parameter Name","Regularization");
 
   p->set<Teuchos::ParameterList*>("LandIce Hydrology",&params->sublist("LandIce Hydrology"));
@@ -740,12 +720,12 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   p = Teuchos::rcp(new Teuchos::ParameterList("LandIce Velocity Norm"));
 
   // Input
-  p->set<std::string>("Field Name",hydraulic_potential_gradient_name);
+  p->set<std::string>("Field Name",hydropotential_grad_name);
   p->set<std::string>("Field Layout","Cell QuadPoint Gradient");
   p->set<Teuchos::ParameterList*>("Parameter List", &params->sublist("LandIce Field Norm"));
 
   // Output
-  p->set<std::string>("Field Norm Name",hydraulic_potential_gradient_norm_name);
+  p->set<std::string>("Field Norm Name",hydropotential_grad_norm_name);
 
   ev = Teuchos::rcp(new PHAL::FieldFrobeniusNorm<EvalT,PHAL::AlbanyTraits>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
@@ -906,15 +886,27 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   ev = Teuchos::rcp(new LandIce::UnaryExpOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ScalarT>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
 
-  //--- Shared Parameter for basal friction coefficient: lambda ---//
-  p = Teuchos::rcp(new Teuchos::ParameterList("Basal Friction Coefficient: kappa"));
+  //--- Shared Parameter for hydrology cavities equation: creep ---//
+  p = Teuchos::rcp(new Teuchos::ParameterList("Cavities Equation: creep"));
+
+  param_name = ParamEnumName::Creep;
+  p->set<std::string>("Parameter Name", param_name);
+  p->set< Teuchos::RCP<ParamLib> >("Parameter Library", paramLib);
+
+  Teuchos::RCP<LandIce::SharedParameter<EvalT,PHAL::AlbanyTraits,ParamEnum,ParamEnum::Creep>> ptr_creep;
+  ptr_creep = Teuchos::rcp(new LandIce::SharedParameter<EvalT,PHAL::AlbanyTraits,ParamEnum,ParamEnum::Creep>(*p,dl));
+  ptr_creep->setNominalValue(params->sublist("Parameters"),params->sublist("LandIce Hydrology").get<double>(param_name,-1.0));
+  fm0.template registerEvaluator<EvalT>(ptr_creep);
+
+  //--- Shared Parameter for hydrology water discharge: kappa ---//
+  p = Teuchos::rcp(new Teuchos::ParameterList("Darcy Law: kappa"));
 
   param_name = ParamEnumName::Kappa;
   p->set<std::string>("Parameter Name", param_name);
   p->set< Teuchos::RCP<ParamLib> >("Parameter Library", paramLib);
 
-  Teuchos::RCP<LandIce::SharedParameter<EvalT,PHAL::AlbanyTraits,ParamEnum,ParamEnum::Lambda>> ptr_kappa;
-  ptr_kappa = Teuchos::rcp(new LandIce::SharedParameter<EvalT,PHAL::AlbanyTraits,ParamEnum,ParamEnum::Lambda>(*p,dl));
+  Teuchos::RCP<LandIce::SharedParameter<EvalT,PHAL::AlbanyTraits,ParamEnum,ParamEnum::Kappa>> ptr_kappa;
+  ptr_kappa = Teuchos::rcp(new LandIce::SharedParameter<EvalT,PHAL::AlbanyTraits,ParamEnum,ParamEnum::Kappa>(*p,dl));
   ptr_kappa->setNominalValue(params->sublist("Parameters"),params->sublist("LandIce Hydrology").get<double>(param_name,-1.0));
   fm0.template registerEvaluator<EvalT>(ptr_kappa);
 
@@ -966,8 +958,64 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   //       the value passed as second input.
   Teuchos::RCP<LandIce::SharedParameter<EvalT,PHAL::AlbanyTraits,ParamEnum,ParamEnum::Homotopy>> ptr_homotopy;
   ptr_homotopy = Teuchos::rcp(new LandIce::SharedParameter<EvalT,PHAL::AlbanyTraits,ParamEnum,ParamEnum::Homotopy>(*p,dl));
-  ptr_homotopy->setNominalValue(params->sublist("Parameters"),1.0);
+  ptr_homotopy->setNominalValue(params->sublist("Parameters"),params->sublist("LandIce Hydrology").sublist("Darcy Law").get<double>(param_name,1.0));
   fm0.template registerEvaluator<EvalT>(ptr_homotopy);
+
+  // -------- Log of beta (nodal)
+  p = Teuchos::rcp(new Teuchos::ParameterList("Simple Op"));
+
+  //Input
+  p->set<std::string> ("Input Field Name",beta_name);
+  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->node_scalar);
+  p->set<double>("Factor",1.0);
+
+  //Output
+  p->set<std::string> ("Output Field Name","log_" + std::string(beta_name));
+
+  ev = Teuchos::rcp(new LandIce::UnaryLogOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ScalarT>(*p,dl));
+  fm0.template registerEvaluator<EvalT>(ev);
+
+  // -------- Log of beta (qp)
+  p = Teuchos::rcp(new Teuchos::ParameterList("Simple Op"));
+
+  //Input
+  p->set<std::string> ("Input Field Name",beta_name);
+  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->qp_scalar);
+  p->set<double>("Factor",1.0);
+
+  //Output
+  p->set<std::string> ("Output Field Name","log_" + std::string(beta_name));
+
+  ev = Teuchos::rcp(new LandIce::UnaryLogOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ScalarT>(*p,dl));
+  fm0.template registerEvaluator<EvalT>(ev);
+
+  // -------- Log of basal_friction (nodal)
+  p = Teuchos::rcp(new Teuchos::ParameterList("Simple Op"));
+
+  //Input
+  p->set<std::string> ("Input Field Name","basal_friction");
+  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->node_scalar);
+  p->set<double>("Factor",1.0);
+
+  //Output
+  p->set<std::string> ("Output Field Name","log_basal_friction");
+
+  ev = Teuchos::rcp(new LandIce::UnaryLogOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
+  fm0.template registerEvaluator<EvalT>(ev);
+
+  // -------- Log of basal_friction (qp)
+  p = Teuchos::rcp(new Teuchos::ParameterList("Simple Op"));
+
+  //Input
+  p->set<std::string> ("Input Field Name","basal_friction");
+  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->qp_scalar);
+  p->set<double>("Factor",1.0);
+
+  //Output
+  p->set<std::string> ("Output Field Name","log_basal_friction");
+
+  ev = Teuchos::rcp(new LandIce::UnaryLogOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
+  fm0.template registerEvaluator<EvalT>(ev);
 
   // ----------------------------------------------------- //
 

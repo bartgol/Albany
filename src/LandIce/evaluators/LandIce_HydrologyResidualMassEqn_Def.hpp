@@ -7,6 +7,10 @@
 #include "Phalanx_DataLayout.hpp"
 #include "Phalanx_TypeStrings.hpp"
 
+#include "Albany_DiscretizationUtils.hpp"
+
+#include "LandIce_HydrologyResidualMassEqn.hpp"
+
 namespace LandIce {
 
 //**********************************************************************
@@ -58,11 +62,11 @@ HydrologyResidualMassEqn (const Teuchos::ParameterList& p,
   this->addEvaluatedField(residual);
 
   // Setting parameters
-  Teuchos::ParameterList& hydrology_params = *p.get<Teuchos::ParameterList*>("LandIce Hydrology Parameters");
+  Teuchos::ParameterList& eqn_params = p.get<Teuchos::ParameterList*>("LandIce Hydrology Parameters")->sublist("Mass Equation");
   Teuchos::ParameterList& physical_params  = *p.get<Teuchos::ParameterList*>("LandIce Physical Parameters");
 
   rho_w       = physical_params.get<double>("Water Density", 1028.0);
-  use_melting = hydrology_params.get<bool>("Use Melting In Conservation Of Mass", false);
+  use_melting = eqn_params.get<bool>("Use Melting", false);
 
   unsteady = p.get<bool>("Unsteady");
   has_h_till = p.get<bool>("Has Till Storage");
@@ -79,7 +83,7 @@ HydrologyResidualMassEqn (const Teuchos::ParameterList& p,
 
   Teuchos::RCP<PHX::DataLayout> layout;
   if (use_melting) {
-    mass_lumping = hydrology_params.isParameter("Lump Mass In Mass Equation") ? hydrology_params.get<bool>("Lump Mass In Mass Equation") : false;
+    mass_lumping = eqn_params.get<bool>("Lump Mass", false);
   } else {
     mass_lumping = false;
   }
@@ -139,7 +143,7 @@ HydrologyResidualMassEqn (const Teuchos::ParameterList& p,
 //**********************************************************************
 template<typename EvalT, typename Traits, bool IsStokesCoupling, bool ThermoCoupled>
 void HydrologyResidualMassEqn<EvalT, Traits, IsStokesCoupling, ThermoCoupled>::
-postRegistrationSetup(typename Traits::SetupData d,
+postRegistrationSetup(typename Traits::SetupData /* d */,
                       PHX::FieldManager<Traits>& fm)
 {
   this->utils.setFieldData(BF,fm);

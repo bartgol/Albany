@@ -13,6 +13,9 @@
 #include "LandIce_HydrologyWaterDischarge.hpp"
 #include "LandIce_ParamEnum.hpp"
 
+//uncomment the following line if you want debug output to be printed to screen
+// #define OUTPUT_TO_SCREEN
+
 namespace LandIce
 {
 
@@ -60,12 +63,13 @@ HydrologyWaterDischarge (const Teuchos::ParameterList& p,
   this->addEvaluatedField(q);
 
   // Setting parameters
-  Teuchos::ParameterList& hydrology = *p.get<Teuchos::ParameterList*>("LandIce Hydrology");
+  Teuchos::ParameterList& params = p.get<Teuchos::ParameterList*>("LandIce Hydrology")->sublist("Darcy Law");
 
-  alpha = hydrology.get<double>("Darcy Law Water Thickness Exponent");
-  beta  = hydrology.get<double>("Darcy Law Potential Gradient Norm Exponent");
+  alpha = params.get<double>("Water Thickness Exponent");
+  beta  = params.get<double>("Potential Gradient Norm Exponent");
+  logParameters = params.get<bool>("Use log scalar parameters",false);
 
-  TEUCHOS_TEST_FOR_EXCEPTION (beta<=1, Teuchos::Exceptions::InvalidParameter, "Error! 'Darcy Law: Potential Gradient Norm Exponent' must be larger than 1.0.\n");
+  TEUCHOS_TEST_FOR_EXCEPTION (beta<=1, Teuchos::Exceptions::InvalidParameter, "Error! 'Potential Gradient Norm Exponent' must be larger than 1.0.\n");
 
   if (beta==2.0) {
     needsGradPhiNorm = false;
@@ -78,7 +82,7 @@ HydrologyWaterDischarge (const Teuchos::ParameterList& p,
     this->addDependentField(gradPhiNorm);
   }
 
-  regularize = hydrology.get<bool>("Regularize With Continuation", false);
+  regularize = params.get<bool>("Regularize With Continuation", false);
   if (regularize)
   {
     regularizationParam = PHX::MDField<ScalarT,Dim>(p.get<std::string>("Regularization Parameter Name"),dl->shared_param);
@@ -128,21 +132,29 @@ void HydrologyWaterDischarge<EvalT, Traits, IsStokes>::evaluateFieldsCell (typen
   output->setProcRankAndSize (procRank, numProcs);
   output->setOutputToRootOnly (0);
 
-  static ScalarT printedReg = -1;
+  const ScalarT k_0 = logParameters ? ScalarT(exp(kappa(0))) : ScalarT(kappa(0));
+  static ScalarT printedReg   = ScalarT(std::numeric_limits<double>::quiet_NaN());
+  static ScalarT printedKappa = ScalarT(std::numeric_limits<double>::quiet_NaN());
+#ifdef OUTPUT_TO_SCREEN
+  if (printedKappa!=k_0) {
+    *output << "[HydrologyWaterDischarge" << PHX::typeAsString<EvalT>() << "] k_0 = " << k_0 << ")\n";
+    *output << "[HydrologyWaterDischarge" << PHX::typeAsString<EvalT>() << "] kappa = " << kappa(0) << ")\n";
+    printedKappa = k_0;
+  }
   if (printedReg!=regularization) {
     *output << "[HydrologyWaterDischarge" << PHX::typeAsString<EvalT>() << "] reg = " << regularization << "\n";
     printedReg = regularization;
   }
+#endif
 
-  const ScalarT k_0 = kappa(0);
   if (needsGradPhiNorm) {
     double grad_norm_exponent = beta - 2.0;
     for (int cell=0; cell < workset.numCells; ++cell) {
       for (int qp=0; qp < numQPs; ++qp) {
         for (int dim(0); dim<numDim; ++dim) {
-          q(cell,qp,dim) = -k_0 * (std::pow(h(cell,qp),alpha)+regularization)
-                                * std::pow(gradPhiNorm(cell,qp),grad_norm_exponent)
-                                * gradPhi(cell,qp,dim);
+          q(cell,qp,dim) = -(k_0+1e-3*regularization) * (std::pow(h(cell,qp),alpha)+regularization)
+                                                      * std::pow(gradPhiNorm(cell,qp),grad_norm_exponent)
+                                                      * gradPhi(cell,qp,dim);
         }
       }
     }
@@ -181,7 +193,7 @@ evaluateFieldsSide (typename Traits::EvalData workset)
     printedReg = regularization;
   }
 
-  const ScalarT k_0 = kappa(0);
+  const ScalarT k_0 = logParameters ? exp(kappa(0)) : kappa(0);
   const std::vector<Albany::SideStruct>& sideSet = workset.sideSets->at(sideSetName);
   for (auto const& it_side : sideSet)
   {
