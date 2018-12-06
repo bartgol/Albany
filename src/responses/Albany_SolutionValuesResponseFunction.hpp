@@ -30,6 +30,8 @@ public:
   SolutionValuesResponseFunction(const Teuchos::RCP<const Application>& app,
                                  Teuchos::ParameterList& responseParams);
 
+  std::string name () const { return "SolutionValuesResponseFunction"; }
+
   //! Get the number of responses
   unsigned int numResponses() const;
 

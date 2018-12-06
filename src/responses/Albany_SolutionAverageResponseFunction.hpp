@@ -23,6 +23,8 @@ public:
   //! Destructor
   ~SolutionAverageResponseFunction() = default;
 
+  std::string name () const { return "SolutionAverageResponseFunction"; }
+
   //! Get the number of responses
   unsigned int numResponses() const { return 1; }
 

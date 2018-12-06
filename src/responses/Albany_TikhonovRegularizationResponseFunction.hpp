@@ -4,28 +4,28 @@
 //    in the file "license.txt" in the top-level Albany directory  //
 //*****************************************************************//
 
-#ifndef ALBANY_SOLUTION_MIN_VALUE_RESPONSE_FUNCTION_HPP
-#define ALBANY_SOLUTION_MIN_VALUE_RESPONSE_FUNCTION_HPP
+
+#ifndef ALBANY_TIKHONOV_REGULARIZATION_RESPONSE_FUNCTION_HPP
+#define ALBANY_TIKHONOV_REGULARIZATION_RESPONSE_FUNCTION_HPP
 
 #include "Albany_SamplingBasedScalarResponseFunction.hpp"
 
 namespace Albany {
 
 /*!
- * \brief Reponse function representing the min of the solution values
+ * \brief Reponse function 
  */
-class SolutionMinValueResponseFunction : public SamplingBasedScalarResponseFunction
+
+class TikhonovRegularizationResponseFunction : public ScalarResponseFunction
 {
 public:
-  //! Default constructor
-  SolutionMinValueResponseFunction(
-    const Teuchos::RCP<const Teuchos_Comm>& comm, 
-    int neq = 1, int eq = 0, bool interleavedOrdering=true);
 
-  //! Destructor
-  ~SolutionMinValueResponseFunction() = default;
+  //! Constructor(s) & destructor
+  TikhonovRegularizationResponseFunction (const Teuchos::ParameterList& params,
+                                          const Teuchos::RCP<const Teuchos_Comm>& comm);
+  ~TikhonovRegularizationResponseFunction() = default;
 
-  std::string name () const { return "SolutionMinValueResponseFunction"; }
+  std::string name () const { return "TikhonovRegularizationResponseFunction"; }
 
   //! Get the number of responses
   unsigned int numResponses() const { return 1; }
@@ -35,8 +35,9 @@ public:
     const Teuchos::RCP<const Thyra_Vector>& x,
     const Teuchos::RCP<const Thyra_Vector>& xdot,
     const Teuchos::RCP<const Thyra_Vector>& xdotdot,
-    const Teuchos::Array<ParamVec>& p,
+	  const Teuchos::Array<ParamVec>& p,
     const Teuchos::RCP<Thyra_Vector>& g);
+
 
   //! Evaluate tangent = dg/dx*dx/dp + dg/dxdot*dxdot/dp + dg/dp
   void evaluateTangent(const double alpha, 
@@ -57,7 +58,6 @@ public:
     const Teuchos::RCP<Thyra_MultiVector>& gx,
     const Teuchos::RCP<Thyra_MultiVector>& gp);
   
-  //! Evaluate gradient = dg/dx, dg/dxdot, dg/dp
   void evaluateGradient(const double current_time,
     const Teuchos::RCP<const Thyra_Vector>& x,
     const Teuchos::RCP<const Thyra_Vector>& xdot,
@@ -70,7 +70,9 @@ public:
     const Teuchos::RCP<Thyra_MultiVector>& dg_dxdotdot,
     const Teuchos::RCP<Thyra_MultiVector>& dg_dp);
 
-  //! Evaluate distributed parameter derivative dg/dp
+private:
+
+  //! Evaluate distributed parameter derivative = dg/dp
   void evaluateDistParamDeriv(
     const double current_time,
     const Teuchos::RCP<const Thyra_Vector>& x,
@@ -80,23 +82,12 @@ public:
     const std::string& dist_param_name,
     const Teuchos::RCP<Thyra_MultiVector>& dg_dp);
 
-protected:
 
-  //! Compute min value
-  void computeMinValue(const Teuchos::RCP<const Thyra_Vector>& x, ST& val);
-
-  //! Number of equations per node
-  int neq;
-
-  //! Equation we want to get the max value from
-  int eq;
-
-  Teuchos::RCP<const Teuchos_Comm> comm_; 
-
-  //! Flag for interleaved verus blocked unknown ordering
-  bool interleavedOrdering;
+  ST                  m_regCoeff;
+  int                 m_paramIndex;
+  Teuchos::Array<ST>  m_refValues;
 };
 
 } // namespace Albany
 
-#endif // ALBANY_SOLUTION_MIN_VALUE_RESPONSE_FUNCTION_HPP
+#endif // ALBANY_TIKHONOV_REGULARIZATION_RESPONSE_FUNCTION_HPP

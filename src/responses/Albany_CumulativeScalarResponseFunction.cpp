@@ -32,6 +32,15 @@ CumulativeScalarResponseFunction(
   }
 }
 
+std::string Albany::CumulativeScalarResponseFunction::name () const
+{
+  std::string n = "Cumulative:";
+  for (const auto& r : responses) {
+    n += " " + r->name();
+  }
+  return n;
+}
+
 void
 Albany::CumulativeScalarResponseFunction::
 setup()
@@ -50,11 +59,6 @@ postRegSetup()
   for (ResponseArray::iterator it = responses.begin(), it_end = responses.end(); it != it_end; ++it) {
     (*it)->postRegSetup();
   }
-}
-
-Albany::CumulativeScalarResponseFunction::
-~CumulativeScalarResponseFunction()
-{
 }
 
 unsigned int

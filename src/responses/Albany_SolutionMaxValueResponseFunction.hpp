@@ -20,11 +20,13 @@ public:
 
   //! Default constructor
   SolutionMaxValueResponseFunction(
-    const Teuchos::RCP<const Teuchos_Comm>& comm, 
+    const Teuchos::RCP<const Teuchos_Comm>& comm,
     int neq = 1, int eq = 0, bool interleavedOrdering = true);
 
   //! Destructor
   ~SolutionMaxValueResponseFunction() = default;
+
+  std::string name () const { return "SolutionMaxValueResponseFunction"; }
 
   //! Get the number of responses
   unsigned int numResponses() const { return 1; }
@@ -38,7 +40,7 @@ public:
     const Teuchos::RCP<Thyra_Vector>& g);
 
   //! Evaluate tangent = dg/dx*dx/dp + dg/dxdot*dxdot/dp + dg/dp
-  void evaluateTangent(const double alpha, 
+  void evaluateTangent(const double alpha,
     const double beta,
     const double omega,
     const double current_time,
@@ -87,7 +89,7 @@ protected:
   //! Equation we want to get the max value from
   int eq;
 
-  Teuchos::RCP<const Teuchos_Comm> comm_; 
+  Teuchos::RCP<const Teuchos_Comm> comm_;
 
   //! Flag for interleaved verus blocked unknown ordering
   bool interleavedOrdering;

@@ -32,18 +32,20 @@ public:
   //! Destructor
   ~KLResponseFunction() = default;
 
+  std::string name () const override { return "KLResponseFunction"; }
+
   //! Setup response function
   void setup() override { response->setup(); }
 
   //! Perform post registration setup (do nothing)
   void postRegSetup() override {}
-  
+
   //! Get the vector space associated with this response
   Teuchos::RCP<const Thyra_VectorSpace> responseVectorSpace() const override {
     return response->responseVectorSpace();
   }
 
-  /*! 
+  /*!
    * \brief Is this response function "scalar" valued, i.e., has a replicated
    * local response map.
    */
@@ -57,7 +59,7 @@ public:
   //! \name Deterministic evaluation functions
   //@{
 
-  //! Evaluate responses 
+  //! Evaluate responses
   void evaluateResponse(
     const double current_time,
     const Teuchos::RCP<const Thyra_Vector>& x,
@@ -68,7 +70,7 @@ public:
   
   //! Evaluate tangent = dg/dx*dx/dp + dg/dxdot*dxdot/dp + dg/dp
   void evaluateTangent(
-    const double alpha, 
+    const double alpha,
     const double beta,
     const double omega,
     const double current_time,

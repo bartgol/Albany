@@ -36,6 +36,8 @@ namespace Albany {
       const Teuchos::RCP<Albany::StateManager>& stateMgr,
       Teuchos::ParameterList& responseParams);
 
+    std::string name () const { return "FieldManagerResidualOnlyResponseFunction"; }
+    
     virtual void 
     evaluateTangent(const double alpha, 
 		  const double beta,

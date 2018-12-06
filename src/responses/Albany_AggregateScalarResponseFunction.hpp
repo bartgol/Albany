@@ -24,6 +24,8 @@ public:
   AggregateScalarResponseFunction(const Teuchos::RCP<const Teuchos_Comm>& comm,
                                   const Teuchos::Array< Teuchos::RCP<ScalarResponseFunction> >& responses);
 
+  std::string name () const;
+
   //! Setup response function
   void setup() override;
 

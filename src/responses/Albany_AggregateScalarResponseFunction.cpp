@@ -24,6 +24,15 @@ AggregateScalarResponseFunction(
   // Nothing to be done here
 }
 
+std::string AggregateScalarResponseFunction::name () const
+{
+  std::string n = "Aggregate:";
+  for (const auto& r : responses) {
+    n += " " + r->name();
+  }
+  return n;
+}
+
 void AggregateScalarResponseFunction::setup()
 {
   typedef Teuchos::Array<Teuchos::RCP<ScalarResponseFunction> > ResponseArray;

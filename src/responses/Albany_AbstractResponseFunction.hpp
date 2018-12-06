@@ -23,13 +23,15 @@ namespace Albany {
   public:
 
     //! Default constructor
-    AbstractResponseFunction() {};
+    AbstractResponseFunction() = default;
 
     //! Destructor
-    virtual ~AbstractResponseFunction() {};
+    virtual ~AbstractResponseFunction() = default;
 
     //! Setup response function
     virtual void setup() = 0;
+
+    virtual std::string name () const = 0;
 
     //! Get the vector space associated with this response.
     virtual Teuchos::RCP<const Thyra_VectorSpace> responseVectorSpace() const = 0;

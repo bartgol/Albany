@@ -30,9 +30,11 @@ public:
   //! Destructor
   virtual ~SolutionResponseFunction() = default;
 
+  std::string name () const override { return "SolutionResponseFunction"; }
+
   //! Setup response function
   void setup() override;
-  
+
   //! Get the map associate with this response
   Teuchos::RCP<const Thyra_VectorSpace> responseVectorSpace() const override { return culled_vs; }
 

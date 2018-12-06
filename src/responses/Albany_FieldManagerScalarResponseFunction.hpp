@@ -36,6 +36,8 @@ public:
   //! Destructor
   ~FieldManagerScalarResponseFunction() = default;
 
+  std::string name () const { return "FieldManagerScalarResponseFunction"; }
+
   //! Get the number of responses
   unsigned int numResponses() const { return num_responses; }
 
@@ -49,9 +51,9 @@ public:
     const Teuchos::RCP<const Thyra_Vector>& xdotdot,
     const Teuchos::Array<ParamVec>& p,
     const Teuchos::RCP<Thyra_Vector>& g);
- 
+
   //! Evaluate tangent = dg/dx*dx/dp + dg/dxdot*dxdot/dp + dg/dp
-  void evaluateTangent(const double alpha, 
+  void evaluateTangent(const double alpha,
     const double beta,
     const double omega,
     const double current_time,
@@ -68,7 +70,7 @@ public:
     const Teuchos::RCP<Thyra_Vector>& g,
     const Teuchos::RCP<Thyra_MultiVector>& gx,
     const Teuchos::RCP<Thyra_MultiVector>& gp);
-  
+
   void evaluateGradient(const double current_time,
     const Teuchos::RCP<const Thyra_Vector>& x,
     const Teuchos::RCP<const Thyra_Vector>& xdot,

@@ -235,6 +235,7 @@ SET(SOURCES ${SOURCES}
   responses/Albany_SolutionResponseFunction.cpp
   responses/Albany_SolutionTwoNormResponseFunction.cpp
   responses/Albany_SolutionValuesResponseFunction.cpp
+  responses/Albany_TikhonovRegularizationResponseFunction.cpp
   )
 SET(HEADERS ${HEADERS}
   responses/Albany_AbstractResponseFunction.hpp
@@ -254,6 +255,7 @@ SET(HEADERS ${HEADERS}
   responses/Albany_SolutionResponseFunction.hpp
   responses/Albany_SolutionTwoNormResponseFunction.hpp
   responses/Albany_SolutionValuesResponseFunction.hpp
+  responses/Albany_TikhonovRegularizationResponseFunction.hpp
   )
 
 #discretization

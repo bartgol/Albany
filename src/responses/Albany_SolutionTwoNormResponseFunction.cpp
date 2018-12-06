@@ -14,18 +14,6 @@ SolutionTwoNormResponseFunction(const Teuchos::RCP<const Teuchos_Comm>& commT) :
 {
 }
 
-Albany::SolutionTwoNormResponseFunction::
-~SolutionTwoNormResponseFunction()
-{
-}
-
-unsigned int
-Albany::SolutionTwoNormResponseFunction::
-numResponses() const 
-{
-  return 1;
-}
-
 void
 Albany::SolutionTwoNormResponseFunction::
 evaluateResponse(const double /*current_time*/,

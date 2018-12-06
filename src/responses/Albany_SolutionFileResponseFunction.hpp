@@ -25,6 +25,8 @@ public:
   //! Destructor
   ~SolutionFileResponseFunction() = default;
 
+  std::string name () const { return "SolutionFileResponseFunction"; }
+
   //! Get the number of responses
   unsigned int numResponses() const { return 1; }
 
