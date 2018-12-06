@@ -10,6 +10,11 @@
 
 #include "Albany_Utils.hpp"
 
+#include "PHAL_ResponseSquaredL2Difference.hpp"
+
+//uncomment the following line if you want debug output to be printed to screen
+// #define OUTPUT_TO_SCREEN
+
 template<typename EvalT, typename Traits, typename SourceScalarT, typename TargetScalarT>
 PHAL::ResponseSquaredL2DifferenceBase<EvalT, Traits, SourceScalarT, TargetScalarT>::
 ResponseSquaredL2DifferenceBase(Teuchos::ParameterList& p, const Teuchos::RCP<Albany::Layouts>& dl)
@@ -137,8 +142,10 @@ void PHAL::ResponseSquaredL2DifferenceBase<EvalT, Traits, SourceScalarT, TargetS
 {
   PHAL::reduceAll<ScalarT>(*workset.comm, Teuchos::REDUCE_SUM, this->global_response_eval);
 
+#ifdef OUTPUT_TO_SCREEN
   if(workset.comm->getRank()==0)
     std::cout << "resp" << PHX::typeAsString<EvalT>() << ": " << this->global_response_eval(0) << "\n" << std::flush;
+#endif
 
   // Do global scattering
   PHAL::SeparableScatterScalarResponse<EvalT, Traits>::postEvaluate(workset);
