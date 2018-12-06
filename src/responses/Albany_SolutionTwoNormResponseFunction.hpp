@@ -24,10 +24,12 @@ namespace Albany {
       const Teuchos::RCP<const Teuchos_Comm>& commT);
 
     //! Destructor
-    virtual ~SolutionTwoNormResponseFunction();
+    ~SolutionTwoNormResponseFunction() = default;
+
+    std::string name () const { return "SolutionTwoNormResponseFunction"; }
 
     //! Get the number of responses
-    virtual unsigned int numResponses() const;
+    unsigned int numResponses() const { return 1; }
 
     //! Evaluate responses
     virtual void 

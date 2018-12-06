@@ -25,21 +25,20 @@ namespace Albany {
       const Teuchos::RCP<const Teuchos_Comm>& commT,
       const Teuchos::Array< Teuchos::RCP<ScalarResponseFunction> >& responses);
 
+    std::string name () const;
+
     //! Setup response function
-    virtual void setup();
+    void setup();
 
     //!Perform post registration setup
-    virtual void postRegSetup();
-
-    //! Destructor
-    virtual ~CumulativeScalarResponseFunction();
+    void postRegSetup();
 
     //! Get the number of responses
-    virtual unsigned int numResponses() const;
+    unsigned int numResponses() const;
 
     //! Evaluate response
-    virtual void 
-    evaluateResponse(const double current_time,
+    void evaluateResponse(
+      const double current_time,
       const Teuchos::RCP<const Thyra_Vector>& x,
       const Teuchos::RCP<const Thyra_Vector>& xdot,
       const Teuchos::RCP<const Thyra_Vector>& xdotdot,
@@ -47,7 +46,7 @@ namespace Albany {
 		  const Teuchos::RCP<Thyra_Vector>& g); 
 
     //! Evaluate tangent = dg/dx*dx/dp + dg/dxdot*dxdot/dp + dg/dp
-    virtual void 
+    void 
     evaluateTangent(const double alpha, 
 		  const double beta,
 		  const double omega,

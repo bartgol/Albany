@@ -65,7 +65,6 @@ namespace Albany {
 
     //! Create individual response function
     void createResponseFunction(
-      const std::string& name,
       Teuchos::ParameterList& responseParams,
       Teuchos::Array< Teuchos::RCP<AbstractResponseFunction> >& responses) const;
 
