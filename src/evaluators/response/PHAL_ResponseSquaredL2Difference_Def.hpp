@@ -10,6 +10,11 @@
 
 #include "Albany_Utils.hpp"
 
+#include "PHAL_ResponseSquaredL2Difference.hpp"
+
+//uncomment the following line if you want debug output to be printed to screen
+// #define OUTPUT_TO_SCREEN
+
 template<typename EvalT, typename Traits, typename SourceScalarT, typename TargetScalarT>
 PHAL::ResponseSquaredL2DifferenceBase<EvalT, Traits, SourceScalarT, TargetScalarT>::
 ResponseSquaredL2DifferenceBase(Teuchos::ParameterList& p, const Teuchos::RCP<Albany::Layouts>& dl)
@@ -44,8 +49,8 @@ ResponseSquaredL2DifferenceBase(Teuchos::ParameterList& p, const Teuchos::RCP<Al
   } else {
     TEUCHOS_TEST_FOR_EXCEPTION(!plist->isParameter("Target Value"), std::logic_error,
                                "[ResponseSquaredL2DifferenceSideBase] Error! No target value or target field provided.\n")
-    target_value = true;
-    target_value_val = TargetScalarT(plist->get<double>("Target Value"));
+    has_target_value = true;
+    target_value = TargetScalarT(plist->get<double>("Target Value"));
   }
   this->addDependentField(w_measure);
 
@@ -71,13 +76,6 @@ template<typename EvalT, typename Traits, typename SourceScalarT, typename Targe
 void PHAL::ResponseSquaredL2DifferenceBase<EvalT, Traits, SourceScalarT, TargetScalarT>::
 postRegistrationSetup(typename Traits::SetupData d, PHX::FieldManager<Traits>& fm)
 {
-  this->utils.setFieldData(sourceField,fm);
-  this->utils.setFieldData(w_measure,fm);
-
-  if (!target_value) {
-    this->utils.setFieldData(targetField,fm);
-  }
-
   PHAL::SeparableScatterScalarResponse<EvalT, Traits>::postRegistrationSetup(d, fm);
 }
 
@@ -108,16 +106,16 @@ void PHAL::ResponseSquaredL2DifferenceBase<EvalT, Traits, SourceScalarT, TargetS
       switch (fieldDim)
       {
         case 0:
-          sq += std::pow(sourceField(cell,qp)-(target_value ? target_value_val : targetField(cell,qp)),2);
+          sq += std::pow(sourceField(cell,qp)-(has_target_value ? target_value : targetField(cell,qp)),2);
           break;
         case 1:
           for (int j=0; j<dims[2]; ++j)
-            sq += std::pow(sourceField(cell,qp,j)-(target_value ? target_value_val : targetField(cell,qp,j)),2);
+            sq += std::pow(sourceField(cell,qp,j)-(has_target_value ? target_value : targetField(cell,qp,j)),2);
           break;
         case 2:
           for (int j=0; j<dims[2]; ++j)
             for (int k=0; k<dims[3]; ++k)
-              sq += std::pow(sourceField(cell,qp,j,k)-(target_value ? target_value_val : targetField(cell,qp,j,k)),2);
+              sq += std::pow(sourceField(cell,qp,j,k)-(has_target_value ? target_value : targetField(cell,qp,j,k)),2);
           break;
       }
       sum += sq * w_measure(cell,qp);
@@ -137,8 +135,10 @@ void PHAL::ResponseSquaredL2DifferenceBase<EvalT, Traits, SourceScalarT, TargetS
 {
   PHAL::reduceAll<ScalarT>(*workset.comm, Teuchos::REDUCE_SUM, this->global_response_eval);
 
+#ifdef OUTPUT_TO_SCREEN
   if(workset.comm->getRank()==0)
     std::cout << "resp" << PHX::typeAsString<EvalT>() << ": " << this->global_response_eval(0) << "\n" << std::flush;
+#endif
 
   // Do global scattering
   PHAL::SeparableScatterScalarResponse<EvalT, Traits>::postEvaluate(workset);

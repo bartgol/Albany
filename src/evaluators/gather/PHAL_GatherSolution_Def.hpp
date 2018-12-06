@@ -815,7 +815,6 @@ evaluateFields(typename Traits::EvalData workset)
   const auto& Vxdot_data    = Albany::getLocalData(Vxdot);
   const auto& Vxdotdot_data = Albany::getLocalData(Vxdotdot);
 
-  Teuchos::RCP<ParamVec> params = workset.params;
   //int num_cols_tot = workset.param_offset + workset.num_cols_p;
 
   int numDim = 0;

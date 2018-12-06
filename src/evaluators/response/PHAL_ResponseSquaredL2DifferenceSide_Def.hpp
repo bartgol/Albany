@@ -4,6 +4,7 @@
 //    in the file "license.txt" in the top-level Albany directory  //
 //*****************************************************************//
 
+#include "PHAL_ResponseSquaredL2DifferenceSide.hpp"
 #include "Phalanx_DataLayout.hpp"
 #include "Teuchos_CommHelpers.hpp"
 #include "PHAL_Utilities.hpp"
@@ -57,8 +58,8 @@ ResponseSquaredL2DifferenceSideBase(Teuchos::ParameterList& p, const Teuchos::RC
   } else {
     TEUCHOS_TEST_FOR_EXCEPTION(!plist->isParameter("Target Value"), std::logic_error,
                                "[ResponseSquaredL2DifferenceSideBase] Error! No target value or target field provided.\n")
-    target_value = true;
-    target_value_val = TargetScalarT(plist->get<double>("Target Value"));
+    has_target_value = true;
+    target_value = TargetScalarT(plist->get<double>("Target Value"));
   }
   this->addDependentField(w_measure);
 
@@ -84,13 +85,6 @@ template<typename EvalT, typename Traits, typename SourceScalarT, typename Targe
 void PHAL::ResponseSquaredL2DifferenceSideBase<EvalT, Traits, SourceScalarT, TargetScalarT>::
 postRegistrationSetup(typename Traits::SetupData d, PHX::FieldManager<Traits>& fm)
 {
-  this->utils.setFieldData(sourceField,fm);
-  this->utils.setFieldData(w_measure,fm);
-
-  if (!target_value) {
-    this->utils.setFieldData(targetField,fm);
-  }
-
   PHAL::SeparableScatterScalarResponse<EvalT, Traits>::postRegistrationSetup(d, fm);
 }
 
@@ -140,12 +134,12 @@ evaluateFields(typename Traits::EvalData workset)
         switch (fieldDim)
         {
           case 0:
-            sq += std::pow(sourceField(cell,side,qp)-(target_value ? target_value_val : targetField(cell,side,qp)),2);
+            sq += std::pow(sourceField(cell,side,qp)-(has_target_value ? target_value : targetField(cell,side,qp)),2);
             break;
           case 1:
             // Precompute differentce and access fields only n times (not n^2)
             for (int i=0; i<dims[3]; ++i)
-              diff_1[i] = sourceField(cell,side,qp,i) - (target_value ? target_value_val : targetField(cell,side,qp,i));
+              diff_1[i] = sourceField(cell,side,qp,i) - (has_target_value ? target_value : targetField(cell,side,qp,i));
 
             for (int i=0; i<dims[3]; ++i)
               for (int j=0; j<dims[3]; ++j)
@@ -155,7 +149,7 @@ evaluateFields(typename Traits::EvalData workset)
             // Precompute differentce and access fields only n^2 times (not n^4)
             for (int i=0; i<dims[3]; ++i)
               for (int j=0; j<dims[3]; ++j)
-                diff_2[i][j] = sourceField(cell,side,qp,i,j) - (target_value ? target_value_val : targetField(cell,side,qp,i,j));
+                diff_2[i][j] = sourceField(cell,side,qp,i,j) - (has_target_value ? target_value : targetField(cell,side,qp,i,j));
 
             for (int i=0; i<dims[3]; ++i)
               for (int j=0; j<dims[3]; ++j)
