@@ -55,13 +55,14 @@ HydrologyWaterThickness (const Teuchos::ParameterList& p,
   u_b = PHX::MDField<const IceScalarT>(p.get<std::string> ("Sliding Velocity Variable Name"), layout);
   N   = PHX::MDField<const ScalarT>(p.get<std::string> ("Effective Pressure Variable Name"), layout);
   A   = PHX::MDField<const TempScalarT>(p.get<std::string> ("Ice Softness Variable Name"), dl->cell_scalar2);
-  h   = PHX::MDField<ScalarT>(p.get<std::string> ("Water Thickness Variable Name"), layout);
   c_creepParam = PHX::MDField<const ScalarT>(ParamEnumName::Creep, dl->shared_param);
 
   this->addDependentField(u_b);
   this->addDependentField(N);
   this->addDependentField(A);
+  this->addDependentField(c_creepParam);
 
+  h = PHX::MDField<ScalarT>(p.get<std::string> ("Water Thickness Variable Name"), layout);
   this->addEvaluatedField(h);
 
   // Setting parameters
