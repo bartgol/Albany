@@ -123,7 +123,7 @@ BasalFrictionCoefficient (const Teuchos::ParameterList& p,
   else if (betaType == "POWER LAW")
   {
     beta_type = POWER_LAW;
-
+    logParameters = beta_list.get<bool>("Use log scalar parameters",false);
 
 #ifdef OUTPUT_TO_SCREEN
     *output << "Velocity-dependent beta (power law):\n\n"
@@ -144,6 +144,8 @@ BasalFrictionCoefficient (const Teuchos::ParameterList& p,
   else if (betaType == "REGULARIZED COULOMB")
   {
     beta_type = REGULARIZED_COULOMB;
+
+    logParameters = beta_list.get<bool>("Use log scalar parameters",false);
 
 #ifdef OUTPUT_TO_SCREEN
     *output << "Velocity-dependent beta (regularized coulomb law):\n\n"
@@ -167,7 +169,8 @@ BasalFrictionCoefficient (const Teuchos::ParameterList& p,
     distributedLambda = beta_list.get<bool>("Distributed Bed Roughness",false);
     if (distributedLambda)
     {
-      lambdaField = PHX::MDField<const ParamScalarT>(p.get<std::string> ("Bed Roughness Variable Name"), layout);
+      std::string prefix = logParameters ? "exp_" : "";
+      lambdaField = PHX::MDField<const ParamScalarT>(prefix + beta_list.get<std::string> ("Bed Roughness Variable Name"), layout);
       this->addDependentField (lambdaField);
     }
     else
@@ -214,6 +217,9 @@ BasalFrictionCoefficient (const Teuchos::ParameterList& p,
   }
 
   logParameters = beta_list.get<bool>("Use log scalar parameters",false);
+
+  if (p.isType<bool>("Enable Memoizer") && p.get<bool>("Enable Memoizer"))
+    memoizer.enable_memoizer();
 
   this->setName("BasalFrictionCoefficient"+PHX::typeAsString<EvalT>());
 }

@@ -428,6 +428,7 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
       ev = evalUtils.constructGatherScalarNodalParameter(it.first,it.first);
       fm0.template registerEvaluator<EvalT>(ev);
       is_input_state_scalar[it.first] = true;
+      is_input_state_nodal[it.first] = true;
 
       // Mark this state as 'found'
       inputs_found.insert(it.first);
@@ -1016,6 +1017,27 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   p->set<std::string> ("Output Field Name","log_basal_friction");
 
   ev = Teuchos::rcp(new LandIce::UnaryLogOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
+  fm0.template registerEvaluator<EvalT>(ev);
+
+  // -------- Exp of lambda field
+  p = Teuchos::rcp(new Teuchos::ParameterList("Simple Op"));
+
+  const std::string& lambda_field_name = params->sublist("LandIce Basal Friction Coefficient").get<std::string>("Bed Roughness Variable Name");
+
+  //Input
+  p->set<std::string> ("Input Field Name",lambda_field_name);
+  p->set<double>("Tau",1.0);
+
+  //Output
+  p->set<std::string> ("Output Field Name","exp_" + lambda_field_name);
+
+  // qp
+  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->qp_scalar);
+  ev = Teuchos::rcp(new LandIce::UnaryExpOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
+  fm0.template registerEvaluator<EvalT>(ev);
+  // node
+  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->node_scalar);
+  ev = Teuchos::rcp(new LandIce::UnaryExpOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
 
   // ----------------------------------------------------- //
