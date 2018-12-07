@@ -5,7 +5,10 @@
 #include "Phalanx_Evaluator_Derived.hpp"
 #include "Sacado_ParameterAccessor.hpp"
 
+#include "Albany_SacadoTypes.hpp"
+#include "Albany_Layouts.hpp"
 #include "Albany_Utils.hpp"
+#include "PHAL_Dimension.hpp"
 
 namespace LandIce
 {
@@ -34,7 +37,7 @@ public:
     this->setName("Shared Parameter " + param_name + PHX::typeAsString<EvalT>());
   }
 
-  void postRegistrationSetup(typename Traits::SetupData d, PHX::FieldManager<Traits>& fm)
+  void postRegistrationSetup(typename Traits::SetupData /* d */, PHX::FieldManager<Traits>& fm)
   {
     this->utils.setFieldData(param_as_field,fm);
     d.fill_field_dependencies(this->dependentFields(),this->evaluatedFields());

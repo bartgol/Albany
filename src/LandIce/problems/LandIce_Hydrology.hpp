@@ -896,8 +896,20 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
 
   Teuchos::RCP<LandIce::SharedParameter<EvalT,PHAL::AlbanyTraits,ParamEnum,ParamEnum::Creep>> ptr_creep;
   ptr_creep = Teuchos::rcp(new LandIce::SharedParameter<EvalT,PHAL::AlbanyTraits,ParamEnum,ParamEnum::Creep>(*p,dl));
-  ptr_creep->setNominalValue(params->sublist("Parameters"),params->sublist("LandIce Hydrology").get<double>(param_name,-1.0));
+  ptr_creep->setNominalValue(params->sublist("Parameters"),params->sublist("LandIce Hydrology").sublist("Cavities Equation").get<double>(param_name,-1.0));
   fm0.template registerEvaluator<EvalT>(ptr_creep);
+
+  //--- Shared Parameter for hydrology melt rate: Geothermal Flux ---//
+  p = Teuchos::rcp(new Teuchos::ParameterList("Cavities Equation: creep"));
+
+  param_name = ParamEnumName::GeoThFlux;
+  p->set<std::string>("Parameter Name", param_name);
+  p->set< Teuchos::RCP<ParamLib> >("Parameter Library", paramLib);
+
+  Teuchos::RCP<LandIce::SharedParameter<EvalT,PHAL::AlbanyTraits,ParamEnum,ParamEnum::GeoThFlux>> ptr_G;
+  ptr_G = Teuchos::rcp(new LandIce::SharedParameter<EvalT,PHAL::AlbanyTraits,ParamEnum,ParamEnum::GeoThFlux>(*p,dl));
+  ptr_G->setNominalValue(params->sublist("Parameters"),params->sublist("LandIce Hydrology").sublist("Melting Rate").get<double>(param_name,-1.0));
+  fm0.template registerEvaluator<EvalT>(ptr_G);
 
   //--- Shared Parameter for hydrology water discharge: kappa ---//
   p = Teuchos::rcp(new Teuchos::ParameterList("Darcy Law: kappa"));
@@ -990,54 +1002,88 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   ev = Teuchos::rcp(new LandIce::UnaryLogOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ScalarT>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
 
-  // -------- Log of basal_friction (nodal)
+  // -------- Log of basal_friction
   p = Teuchos::rcp(new Teuchos::ParameterList("Simple Op"));
 
   //Input
   p->set<std::string> ("Input Field Name","basal_friction");
+  p->set<double>("Factor",1.0);
+
+  //Output
+  p->set<std::string> ("Output Field Name","log_basal_friction");
+
+  // nodal
   p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->node_scalar);
-  p->set<double>("Factor",1.0);
-
-  //Output
-  p->set<std::string> ("Output Field Name","log_basal_friction");
-
   ev = Teuchos::rcp(new LandIce::UnaryLogOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
-
-  // -------- Log of basal_friction (qp)
-  p = Teuchos::rcp(new Teuchos::ParameterList("Simple Op"));
-
-  //Input
-  p->set<std::string> ("Input Field Name","basal_friction");
-  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->qp_scalar);
-  p->set<double>("Factor",1.0);
-
-  //Output
-  p->set<std::string> ("Output Field Name","log_basal_friction");
-
-  ev = Teuchos::rcp(new LandIce::UnaryLogOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
-  fm0.template registerEvaluator<EvalT>(ev);
-
-  // -------- Exp of lambda field
-  p = Teuchos::rcp(new Teuchos::ParameterList("Simple Op"));
-
-  const std::string& lambda_field_name = params->sublist("LandIce Basal Friction Coefficient").get<std::string>("Bed Roughness Variable Name");
-
-  //Input
-  p->set<std::string> ("Input Field Name",lambda_field_name);
-  p->set<double>("Tau",1.0);
-
-  //Output
-  p->set<std::string> ("Output Field Name","exp_" + lambda_field_name);
 
   // qp
   p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->qp_scalar);
-  ev = Teuchos::rcp(new LandIce::UnaryExpOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
+  ev = Teuchos::rcp(new LandIce::UnaryLogOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
-  // node
+
+  // --------- Low-pass filter for log_basal_friction
+  p = Teuchos::rcp(new Teuchos::ParameterList("Simple Op"));
+
+  //Input
+  p->set<std::string> ("Input Field Name","log_basal_friction");
+  p->set<double>("Upper Threshold",params->sublist("LandIce Basal Friction Coefficient").get<double>("Low Pass Filter Bound",6.0));
+
+  //Output
+  p->set<std::string> ("Output Field Name","filtered_log_basal_friction");
+
+  // nodal
   p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->node_scalar);
-  ev = Teuchos::rcp(new LandIce::UnaryExpOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
+  ev = Teuchos::rcp(new LandIce::UnaryLowPassOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
+
+  // qp
+  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->qp_scalar);
+  ev = Teuchos::rcp(new LandIce::UnaryLowPassOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
+  fm0.template registerEvaluator<EvalT>(ev);
+
+  // --------- Low-pass filter for log_beta
+  p = Teuchos::rcp(new Teuchos::ParameterList("Simple Op"));
+
+  //Input
+  p->set<std::string> ("Input Field Name","log_beta");
+  p->set<double>("Upper Threshold",params->sublist("LandIce Basal Friction Coefficient").get<double>("Low Pass Filter Bound",6.0));
+
+  //Output
+  p->set<std::string> ("Output Field Name","filtered_log_beta");
+
+  // nodal
+  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->node_scalar);
+  ev = Teuchos::rcp(new LandIce::UnaryLowPassOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ScalarT>(*p,dl));
+  fm0.template registerEvaluator<EvalT>(ev);
+
+  // qp
+  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->qp_scalar);
+  ev = Teuchos::rcp(new LandIce::UnaryLowPassOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ScalarT>(*p,dl));
+  fm0.template registerEvaluator<EvalT>(ev);
+
+  if (params->sublist("LandIce Basal Friction Coefficient").get<bool>("Distributed Bed Roughness")) {
+    // -------- Exp of lambda field
+    p = Teuchos::rcp(new Teuchos::ParameterList("Simple Op"));
+
+    const std::string& lambda_field_name = params->sublist("LandIce Basal Friction Coefficient").get<std::string>("Bed Roughness Variable Name");
+
+    //Input
+    p->set<std::string> ("Input Field Name",lambda_field_name);
+    p->set<double>("Tau",1.0);
+
+    //Output
+    p->set<std::string> ("Output Field Name","exp_" + lambda_field_name);
+
+    // qp
+    p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->qp_scalar);
+    ev = Teuchos::rcp(new LandIce::UnaryExpOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
+    fm0.template registerEvaluator<EvalT>(ev);
+    // node
+    p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->node_scalar);
+    ev = Teuchos::rcp(new LandIce::UnaryExpOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
+    fm0.template registerEvaluator<EvalT>(ev);
+  }
 
   // ----------------------------------------------------- //
 

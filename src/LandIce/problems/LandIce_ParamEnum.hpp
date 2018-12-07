@@ -15,6 +15,7 @@ enum class ParamEnum
   Power      ,
   Alpha      ,
   Kappa      ,
+  GeoThFlux  ,
   Creep      
 };
 
@@ -30,6 +31,7 @@ namespace ParamEnumName
   // Hydrology
   static const std::string Alpha         = "Hydraulic-Over-Hydrostatic Potential Ratio";
   static const std::string Kappa         = "Transmissivity";
+  static const std::string GeoThFlux     = "Geothermal Flux";
   static const std::string Creep         = "Creep Closure Coefficient";
 } // ParamEnum
 
