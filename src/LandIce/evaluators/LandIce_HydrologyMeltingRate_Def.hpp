@@ -7,6 +7,11 @@
 #include "Phalanx_DataLayout.hpp"
 #include "Phalanx_TypeStrings.hpp"
 
+#include "Albany_DiscretizationUtils.hpp"
+
+#include "LandIce_ParamEnum.hpp"
+#include "LandIce_HydrologyMeltingRate.hpp"
+
 namespace LandIce {
 
 //**************************************************************
@@ -72,14 +77,24 @@ HydrologyMeltingRate (const Teuchos::ParameterList& p,
     layout = dl->qp_scalar;
   }
   u_b  = PHX::MDField<const IceScalarT>(p.get<std::string> ("Sliding Velocity Variable Name"), layout);
-  G    = PHX::MDField<const ParamScalarT>(p.get<std::string> ("Geothermal Heat Source Variable Name"), layout);
   beta = PHX::MDField<const ScalarT>(p.get<std::string> ("Basal Friction Coefficient Variable Name"), layout);
   m    = PHX::MDField<ScalarT>(p.get<std::string> ("Melting Rate Variable Name"),layout);
 
   this->addDependentField(beta);
   this->addDependentField(u_b);
-  this->addDependentField(G);
   this->addEvaluatedField(m);
+
+  auto melt_rate_params = p.get<Teuchos::ParameterList*>("LandIce Hydrology")->sublist("Melting Rate");
+  logParameters = melt_rate_params.get<bool>("Use Log Scalar Parameters",false);
+
+  distributedG = melt_rate_params.get<bool>("Distributed Geothermal Flux",true);
+  if (distributedG) {
+    G_field = PHX::MDField<const ParamScalarT>(p.get<std::string> ("Geothermal Heat Source Variable Name"), layout);
+    this->addDependentField(G_field);
+  } else {
+    G_param = PHX::MDField<const ScalarT>(ParamEnumName::GeoThFlux, dl->shared_param);
+    this->addDependentField(G_param);
+  }
 
   this->setName("HydrologyMeltingRate"+PHX::typeAsString<EvalT>());
 }
@@ -87,11 +102,15 @@ HydrologyMeltingRate (const Teuchos::ParameterList& p,
 //**********************************************************************
 template<typename EvalT, typename Traits, bool IsStokes>
 void HydrologyMeltingRate<EvalT, Traits, IsStokes>::
-postRegistrationSetup(typename Traits::SetupData d,
+postRegistrationSetup(typename Traits::SetupData /* c */,
                       PHX::FieldManager<Traits>& fm)
 {
   this->utils.setFieldData(u_b,fm);
-  this->utils.setFieldData(G,fm);
+  if (distributedG) {
+    this->utils.setFieldData(G_field,fm);
+  } else {
+    this->utils.setFieldData(G_param,fm);
+  }
   this->utils.setFieldData(beta,fm);
   this->utils.setFieldData(m,fm);
 }
@@ -102,32 +121,57 @@ void HydrologyMeltingRate<EvalT, Traits, IsStokes>::evaluateFields (typename Tra
 {
   // m = \frac{ G - \beta |u_b|^2 + \nabla (phiH-N)\cdot q }{L} %% The nonlinear term \nabla (phiH-N)\cdot q can be ignored
 
-  if (IsStokes)
+  if (IsStokes) {
+    evaluateFieldsSide(workset);
+  } else {
+    evaluateFieldsCell(workset);
+  }
+}
+
+template<typename EvalT, typename Traits, bool IsStokes>
+void HydrologyMeltingRate<EvalT, Traits, IsStokes>::evaluateFieldsSide (typename Traits::EvalData workset)
+{
+  if (workset.sideSets->find(sideSetName)==workset.sideSets->end()) {
+    return;
+  }
+
+  const ScalarT G = distributedG ? ScalarT(0.0) :
+                      (logParameters ? ScalarT(exp(G_param(0))) : G_param(0));
+
+  const std::vector<Albany::SideStruct>& sideSet = workset.sideSets->at(sideSetName);
+  for (auto const& it_side : sideSet)
   {
-    if (workset.sideSets->find(sideSetName)==workset.sideSets->end())
-      return;
+    // Get the local data of side and cell
+    const int cell = it_side.elem_LID;
+    const int side = it_side.side_local_id;
 
-    const std::vector<Albany::SideStruct>& sideSet = workset.sideSets->at(sideSetName);
-    for (auto const& it_side : sideSet)
-    {
-      // Get the local data of side and cell
-      const int cell = it_side.elem_LID;
-      const int side = it_side.side_local_id;
-
-      for (int qp=0; qp < numQPs; ++qp)
-      {
-        m(cell,side,qp) = ( scaling_G*G(cell,side,qp) + beta(cell,side,qp) * std::pow(u_b(cell,side,qp),2) ) / L;
+    if (distributedG) {
+      for (int qp=0; qp < numQPs; ++qp) {
+        m(cell,side,qp) = ( scaling_G*G_field(cell,side,qp) + beta(cell,side,qp) * std::pow(u_b(cell,side,qp),2) ) / L;
+      }
+    } else {
+      for (int qp=0; qp < numQPs; ++qp) {
+        m(cell,side,qp) = ( scaling_G*G + beta(cell,side,qp) * std::pow(u_b(cell,side,qp),2) ) / L;
       }
     }
   }
-  else
-  {
-    int dim = nodal ? numNodes : numQPs;
-    for (int cell=0; cell < workset.numCells; ++cell)
-    {
-      for (int i=0; i<dim; ++i)
-      {
-        m(cell,i) = ( scaling_G*G(cell,i) + beta(cell,i) * std::pow(u_b(cell,i),2) ) / L;
+}
+
+template<typename EvalT, typename Traits, bool IsStokes>
+void HydrologyMeltingRate<EvalT, Traits, IsStokes>::evaluateFieldsCell (typename Traits::EvalData workset)
+{
+  int dim = nodal ? numNodes : numQPs;
+  if (distributedG) {
+    for (int cell=0; cell < workset.numCells; ++cell) {
+      for (int i=0; i<dim; ++i) {
+        m(cell,i) = ( scaling_G*G_field(cell,i) + beta(cell,i) * std::pow(u_b(cell,i),2) ) / L;
+      }
+    }
+  } else {
+    const ScalarT G = logParameters ? ScalarT(exp(G_param(0))) : G_param(0);
+    for (int cell=0; cell < workset.numCells; ++cell) {
+      for (int i=0; i<dim; ++i) {
+        m(cell,i) = ( scaling_G*G + beta(cell,i) * std::pow(u_b(cell,i),2) ) / L;
       }
     }
   }

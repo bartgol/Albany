@@ -43,15 +43,22 @@ public:
 
 private:
 
+  void evaluateFieldsCell (typename Traits::EvalData d);
+  void evaluateFieldsSide (typename Traits::EvalData d);
+
   // Input:
   PHX::MDField<const IceScalarT>    u_b;
   PHX::MDField<const ScalarT>       beta;
-  PHX::MDField<const ParamScalarT>  G;
+  PHX::MDField<const ParamScalarT>  G_field;
+
+  PHX::MDField<const ScalarT>       G_param;
 
   // Output:
   PHX::MDField<ScalarT>             m;
 
   bool              nodal;
+  bool              distributedG;
+  bool              logParameters;
 
   int               numQPs;
   int               numNodes;

@@ -67,7 +67,7 @@ HydrologyWaterDischarge (const Teuchos::ParameterList& p,
 
   alpha = params.get<double>("Water Thickness Exponent");
   beta  = params.get<double>("Potential Gradient Norm Exponent");
-  logParameters = params.get<bool>("Use log scalar parameters",false);
+  logParameters = params.get<bool>("Use Log Scalar Parameters",false);
 
   TEUCHOS_TEST_FOR_EXCEPTION (beta<=1, Teuchos::Exceptions::InvalidParameter, "Error! 'Potential Gradient Norm Exponent' must be larger than 1.0.\n");
 

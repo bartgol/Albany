@@ -5,7 +5,10 @@
 #include "Phalanx_Evaluator_Derived.hpp"
 #include "Sacado_ParameterAccessor.hpp"
 
+#include "Albany_SacadoTypes.hpp"
+#include "Albany_Layouts.hpp"
 #include "Albany_Utils.hpp"
+#include "PHAL_Dimension.hpp"
 
 namespace LandIce
 {
