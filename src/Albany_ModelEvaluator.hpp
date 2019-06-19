@@ -26,6 +26,8 @@ public:
       const Teuchos::RCP<Application>& app,
       const Teuchos::RCP<Teuchos::ParameterList>& appParams);
 
+  Teuchos::RCP<Application> getApp () const { return app; }
+
   /** \name Overridden from Thyra::ModelEvaluator<ST> . */
   //@{
 
@@ -89,13 +91,13 @@ public:
     current_time_ = t;
     return;
   }
+#endif // ALBANY_LCM
 
   void
   setNominalValues(Thyra_InArgs nv)
   {
     nominalValues = nv;
   }
-#endif // ALBANY_LCM
 
  protected:
   /** \name Overridden from Thyra::ModelEvaluatorDefaultBase<ST> . */

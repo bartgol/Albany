@@ -396,7 +396,7 @@ SolverFactory::createAndGetAlbanyApp(
   return Teuchos::null;
 }
 
-Teuchos::RCP<Thyra_ModelEvaluator>
+Teuchos::RCP<ModelEvaluator>
 SolverFactory::createAlbanyAppAndModel(
     Teuchos::RCP<Application>&      albanyApp,
     const Teuchos::RCP<const Teuchos_Comm>& appComm,

@@ -7,6 +7,7 @@
 #ifndef ALBANY_SOLVER_FACTORY_HPP
 #define ALBANY_SOLVER_FACTORY_HPP
 
+#include "Albany_ModelEvaluator.hpp"
 #include "Albany_Application.hpp"
 
 #include "Thyra_ModelEvaluator.hpp"
@@ -56,7 +57,7 @@ public:
                          bool                                    createAlbanyApp = true);
 
   // Thyra version of above
-  Teuchos::RCP<Thyra::ModelEvaluator<ST>>
+  Teuchos::RCP<ModelEvaluator>
   createAlbanyAppAndModel (Teuchos::RCP<Application>&              albanyApp,
                            const Teuchos::RCP<const Teuchos_Comm>& appComm,
                            const Teuchos::RCP<const Thyra_Vector>& initial_guess   = Teuchos::null,
@@ -118,7 +119,7 @@ public:
       int                                            response_index,
       const Teuchos::RCP<Thyra::VectorBase<double>>& tvec) const;
 
-  Teuchos::RCP<Thyra::ModelEvaluator<ST>>
+  Teuchos::RCP<ModelEvaluator>
   returnModel() const
   {
     return model_;
@@ -144,7 +145,7 @@ private:
                          int                     failures,
                          int                     comparisons) const;
 
-  Teuchos::RCP<Thyra::ModelEvaluator<ST>> model_;
+  Teuchos::RCP<ModelEvaluator> model_;
 
   Teuchos::RCP<Piro::ObserverBase<double>> observer_;
 
