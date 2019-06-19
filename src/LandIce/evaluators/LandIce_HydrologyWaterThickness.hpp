@@ -44,8 +44,8 @@ public:
 
 private:
 
-  void evaluateFieldsCell(typename Traits::EvalData d);
-  void evaluateFieldsSide(typename Traits::EvalData d);
+  void evaluateFieldsCell(typename Traits::EvalData d, const ScalarT c_creep);
+  void evaluateFieldsSide(typename Traits::EvalData d, const ScalarT c_creep);
 
   // Input:
   PHX::MDField<const IceScalarT>    u_b;
@@ -53,18 +53,21 @@ private:
   PHX::MDField<const ScalarT>       m;
   PHX::MDField<const ScalarT>       N;
 
+  PHX::MDField<const ScalarT>       c_creepParam;
+
   // Output:
   PHX::MDField<ScalarT>   h;
 
   double h_r;
   double l_r;
   double rho_i;
-  double c_creep;
+  double scaling_creep;
 
   int numPts;
   std::string   sideSetName;
 
   bool use_melting;
+  bool logParameters;
 };
 
 } // Namespace LandIce

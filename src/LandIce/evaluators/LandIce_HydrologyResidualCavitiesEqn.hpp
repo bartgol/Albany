@@ -11,7 +11,9 @@
 #include "Phalanx_Evaluator_WithBaseImpl.hpp"
 #include "Phalanx_Evaluator_Derived.hpp"
 #include "Phalanx_MDField.hpp"
+
 #include "Albany_Layouts.hpp"
+#include "Albany_ScalarOrdinalTypes.hpp"
 
 namespace LandIce
 {
@@ -56,8 +58,8 @@ public:
 
 private:
 
-  void evaluateFieldsCell(typename Traits::EvalData d);
-  void evaluateFieldsSide(typename Traits::EvalData d);
+  void evaluateFieldsCell(typename Traits::EvalData d, const ScalarT c_creep);
+  void evaluateFieldsSide(typename Traits::EvalData d, const ScalarT c_creep);
 
   // Input:
   PHX::MDField<const RealType>      BF;
@@ -71,6 +73,8 @@ private:
   PHX::MDField<const IceScalarT>    u_b;
   PHX::MDField<const TempScalarT>   ice_softness;
 
+  PHX::MDField<const ScalarT>       c_creepParam;
+
   // Output:
   PHX::MDField<ScalarT>             residual;
 
@@ -81,8 +85,8 @@ private:
   double phi0;
   double h_r;
   double l_r;
-  double c_creep;
   double scaling_h_t;
+  double scaling_creep;
   double penalization_coeff;
 
   bool unsteady;
@@ -90,6 +94,7 @@ private:
   bool use_melting;
   bool nodal_equation;
   bool penalization;
+  bool logParameters;
 
   // Variables necessary for stokes coupling
   bool                            stokes_coupling;

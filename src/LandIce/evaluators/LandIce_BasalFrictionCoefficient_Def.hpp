@@ -17,7 +17,7 @@
 #include <string.hpp> // for 'upper_case' (comes from src/utility; not to be confused with <string>)
 
 //uncomment the following line if you want debug output to be printed to screen
-//#define OUTPUT_TO_SCREEN
+// #define OUTPUT_TO_SCREEN
 
 namespace LandIce
 {
@@ -238,19 +238,19 @@ evaluateFields (typename Traits::EvalData workset)
 {
   if (memoizer.have_saved_data(workset,this->evaluatedFields())) return;
 
-  ParamScalarT mu, lambda, power;
+  ScalarT mu, lambda, power;
 
   if (beta_type == POWER_LAW)
   {
     if (logParameters)
     {
-      mu = std::exp(Albany::convertScalar<const ParamScalarT>(muPowerLaw(0)));
-      power = std::exp(Albany::convertScalar<const ParamScalarT>(powerParam(0)));
+      mu = std::exp(muPowerLaw(0));
+      power = std::exp(powerParam(0));
     }
     else
     {
-      mu = Albany::convertScalar<const ParamScalarT>(muPowerLaw(0));
-      power = Albany::convertScalar<const ParamScalarT>(powerParam(0));
+      mu = muPowerLaw(0);
+      power = powerParam(0);
     }
 #ifdef OUTPUT_TO_SCREEN
     Teuchos::RCP<Teuchos::FancyOStream> output(Teuchos::VerboseObjectBase::getDefaultOStream());
@@ -281,17 +281,17 @@ evaluateFields (typename Traits::EvalData workset)
   {
     if (logParameters)
     {
-      mu = std::exp(Albany::convertScalar<const ParamScalarT>(muCoulomb(0)));
-      power = std::exp(Albany::convertScalar<const ParamScalarT>(powerParam(0)));
+      mu = std::exp(muCoulomb(0));
+      power = std::exp(powerParam(0));
       if (!distributedLambda)
-        lambda = std::exp(Albany::convertScalar<const ParamScalarT>(lambdaParam(0)));
+        lambda = std::exp(lambdaParam(0));
     }
     else
     {
-      mu = Albany::convertScalar<const ParamScalarT>(muCoulomb(0));
-      power = Albany::convertScalar<const ParamScalarT>(powerParam(0));
+      mu = muCoulomb(0);
+      power = powerParam(0);
       if (!distributedLambda)
-        lambda = Albany::convertScalar<const ParamScalarT>(lambdaParam(0));
+        lambda = lambdaParam(0);
     }
 #ifdef OUTPUT_TO_SCREEN
     Teuchos::RCP<Teuchos::FancyOStream> output(Teuchos::VerboseObjectBase::getDefaultOStream());
@@ -471,8 +471,8 @@ evaluateFieldsCell (typename Traits::EvalData workset, ScalarT mu, ScalarT lambd
         for (int cell=0; cell<workset.numCells; ++cell)
           for (int ipt=0; ipt<dim; ++ipt)
           {
-            ScalarT q = u_norm(cell,ipt) / ( u_norm(cell,ipt) + lambdaField(cell,ipt)*ice_softness(cell)*std::pow(std::max(N(cell,ipt),0.0),3) );
-            beta(cell,ipt) = mu * std::max(N(cell,ipt),0.0) * std::pow( q, power) / u_norm(cell,ipt);
+            ScalarT q = u_norm(cell,ipt) / ( u_norm(cell,ipt) + lambdaField(cell,ipt)*ice_softness(cell)*std::pow(N(cell,ipt),3) );
+            beta(cell,ipt) = mu * N(cell,ipt) * std::pow( q, power) / u_norm(cell,ipt);
           }
       }
       else

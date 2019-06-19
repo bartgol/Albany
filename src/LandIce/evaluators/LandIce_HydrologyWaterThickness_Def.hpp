@@ -7,6 +7,11 @@
 #include "Phalanx_DataLayout.hpp"
 #include "Phalanx_TypeStrings.hpp"
 
+#include "Albany_DiscretizationUtils.hpp"
+
+#include "LandIce_ParamEnum.hpp"
+#include "LandIce_HydrologyWaterThickness.hpp"
+
 namespace LandIce
 {
 
@@ -51,6 +56,7 @@ HydrologyWaterThickness (const Teuchos::ParameterList& p,
   N   = PHX::MDField<const ScalarT>(p.get<std::string> ("Effective Pressure Variable Name"), layout);
   A   = PHX::MDField<const TempScalarT>(p.get<std::string> ("Ice Softness Variable Name"), dl->cell_scalar2);
   h   = PHX::MDField<ScalarT>(p.get<std::string> ("Water Thickness Variable Name"), layout);
+  c_creepParam = PHX::MDField<const ScalarT>(ParamEnumName::Creep, dl->shared_param);
 
   this->addDependentField(u_b);
   this->addDependentField(N);
@@ -63,11 +69,11 @@ HydrologyWaterThickness (const Teuchos::ParameterList& p,
   Teuchos::ParameterList& physics   = *p.get<Teuchos::ParameterList*>("LandIce Physical Parameters");
 
   rho_i = physics.get<double>("Ice Density");
-  h_r = hydrology.get<double>("Bed Bumps Height");
-  l_r = hydrology.get<double>("Bed Bumps Length");
-  c_creep = hydrology.get<double>("Creep Closure Coefficient",1.0);
+  h_r = hydrology.sublist("Cavities Equation").get<double>("Bed Bumps Height");
+  l_r = hydrology.sublist("Cavities Equation").get<double>("Bed Bumps Length");
+  logParameters = hydrology.sublist("Cavities Equation").get<bool>("Use Log Scalar Parameters",false);
 
-  use_melting = hydrology.get<bool>("Use Melting In Cavities Equation", false);
+  use_melting = hydrology.sublist("Cavities Equation").get<bool>("Use Melting", false);
   if (use_melting) {
     m = PHX::MDField<const ScalarT>(p.get<std::string> ("Melting Rate Variable Name"), layout);
     this->addDependentField(m);
@@ -95,7 +101,7 @@ HydrologyWaterThickness (const Teuchos::ParameterList& p,
    */
 
   double yr_to_s = 365.25*24*3600;
-  c_creep *= yr_to_s;
+  scaling_creep = yr_to_s;
 
   this->setName("HydrologyWaterThickness"+PHX::typeAsString<EvalT>());
 }
@@ -103,7 +109,7 @@ HydrologyWaterThickness (const Teuchos::ParameterList& p,
 //**********************************************************************
 template<typename EvalT, typename Traits, bool IsStokes, bool ThermoCoupled>
 void HydrologyWaterThickness<EvalT, Traits, IsStokes, ThermoCoupled>::
-postRegistrationSetup(typename Traits::SetupData d,
+postRegistrationSetup(typename Traits::SetupData /* d */,
                       PHX::FieldManager<Traits>& fm)
 {
   this->utils.setFieldData(u_b,fm);
@@ -119,15 +125,18 @@ postRegistrationSetup(typename Traits::SetupData d,
 template<typename EvalT, typename Traits, bool IsStokes, bool ThermoCoupled>
 void HydrologyWaterThickness<EvalT, Traits, IsStokes, ThermoCoupled>::evaluateFields (typename Traits::EvalData workset)
 {
+  ScalarT c_creep = logParameters ? ScalarT(exp(c_creepParam(0))) : c_creepParam(0);
+  c_creep *= scaling_creep;
   if (IsStokes) {
-    evaluateFieldsSide(workset);
+    evaluateFieldsSide(workset, c_creep);
   } else {
-    evaluateFieldsCell(workset);
+    evaluateFieldsCell(workset, c_creep);
   }
 }
 
 template<typename EvalT, typename Traits, bool IsStokes, bool ThermoCoupled>
-void HydrologyWaterThickness<EvalT, Traits, IsStokes, ThermoCoupled>::evaluateFieldsCell (typename Traits::EvalData workset)
+void HydrologyWaterThickness<EvalT, Traits, IsStokes, ThermoCoupled>::
+evaluateFieldsCell (typename Traits::EvalData workset, const ScalarT c_creep)
 {
   ScalarT zero (0.0);
   for (int cell=0; cell < workset.numCells; ++cell)
@@ -142,7 +151,7 @@ void HydrologyWaterThickness<EvalT, Traits, IsStokes, ThermoCoupled>::evaluateFi
 
 template<typename EvalT, typename Traits, bool IsStokes, bool ThermoCoupled>
 void HydrologyWaterThickness<EvalT, Traits, IsStokes, ThermoCoupled>::
-evaluateFieldsSide (typename Traits::EvalData workset)
+evaluateFieldsSide (typename Traits::EvalData workset, const ScalarT c_creep)
 {
   if (workset.sideSets->find(sideSetName)==workset.sideSets->end())
     return;
