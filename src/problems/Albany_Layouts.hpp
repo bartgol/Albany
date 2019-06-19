@@ -22,70 +22,85 @@ namespace Albany {
     Layouts (int worksetSize, int numVertices, int numNodes, int numQPts, int numCellDim, int vecDim=-1, int numFace=0);
     Layouts (int worksetSize, int numVertices, int numNodes, int numQPts, int numSideDim, int numSpaceDim, int numSides, int vecDim);
 
-    //! Data Layout for scalar quantity that lives at nodes
-    Teuchos::RCP<PHX::DataLayout> node_scalar;
-    //! Data Layout for scalar quantity that lives at quad points
-    Teuchos::RCP<PHX::DataLayout> qp_scalar;
+    //! Data Layout for scalar quantity on workset
+    Teuchos::RCP<PHX::DataLayout> workset_scalar;
+    //! Data Layout for vector quantity on workset
+    Teuchos::RCP<PHX::DataLayout> workset_vector;
+    //! Data Layout for gradient quantity on workset
+    Teuchos::RCP<PHX::DataLayout> workset_gradient;
+    //! Data Layout for tensor quantity on workset
+    Teuchos::RCP<PHX::DataLayout> workset_tensor;
+    //! Data Layout for vector gradient quantity on workset
+    Teuchos::RCP<PHX::DataLayout> workset_vecgradient;
+
     //! Data Layout for scalar quantity that lives on a cell
     Teuchos::RCP<PHX::DataLayout> cell_scalar;
     //! Data Layout for scalar quantity that lives on a cell
     Teuchos::RCP<PHX::DataLayout> cell_scalar2;
-    //! Data Layout for scalar quantity that lives on a face
-    Teuchos::RCP<PHX::DataLayout> face_scalar;
-    //! Data Layout for vector quantity that lives at nodes
-    Teuchos::RCP<PHX::DataLayout> node_vector;
-    //! Data Layout for vector quantity that lives at quad points
-    Teuchos::RCP<PHX::DataLayout> qp_vector;
     //! Data Layout for vector quantity that lives on a cell
     Teuchos::RCP<PHX::DataLayout> cell_vector;
+    //! Data Layout for gradient quantity that lives on a cell
+    Teuchos::RCP<PHX::DataLayout> cell_gradient;
+    //! Data Layout for tensor quantity that lives on a cell
+    Teuchos::RCP<PHX::DataLayout> cell_tensor;
+    //! Data Layout for vector gradient quantity that lives on a cell
+    Teuchos::RCP<PHX::DataLayout> cell_vecgradient;
+    //! Data Layout for third order tensor quantity that lives on a cell
+    Teuchos::RCP<PHX::DataLayout> cell_tensor3;
+    //! Data Layout for fourth order tensor quantity that lives on a cell
+    Teuchos::RCP<PHX::DataLayout> cell_tensor4;
+
+    //! Data Layout for scalar quantity that lives on a face
+    Teuchos::RCP<PHX::DataLayout> face_scalar;
     //! Data Layout for vector quantity that lives on a face
     Teuchos::RCP<PHX::DataLayout> face_vector;
+    //! Data Layout for gradient quantity that lives on a face
+    Teuchos::RCP<PHX::DataLayout> face_gradient;
+    //! Data Layout for tensor quantity that lives on a face
+    Teuchos::RCP<PHX::DataLayout> face_tensor;
+    //! Data Layout for vector gradient quantity that lives on a face
+    Teuchos::RCP<PHX::DataLayout> face_vecgradient;
+    //! Data Layout for third order tensor quantity that lives on a face
+    Teuchos::RCP<PHX::DataLayout> face_tensor3;
+    //! Data Layout for fourth order tensor quantity that lives on a face
+    Teuchos::RCP<PHX::DataLayout> face_tensor4;
+
+    //! Data Layout for scalar quantity that lives at nodes
+    Teuchos::RCP<PHX::DataLayout> node_scalar;
+    //! Data Layout for vector quantity that lives at nodes
+    Teuchos::RCP<PHX::DataLayout> node_vector;
+    //! Data Layout for tensor quantity that lives at nodes
+    Teuchos::RCP<PHX::DataLayout> node_tensor;
     //! Data Layout for gradient quantity that lives at nodes
     Teuchos::RCP<PHX::DataLayout> node_gradient;
+    //! Data Layout for vector gradient quantity that lives at nodes
+    Teuchos::RCP<PHX::DataLayout> node_vecgradient;
+    //! Data Layout for third order tensor quantity that lives at nodes
+    Teuchos::RCP<PHX::DataLayout> node_tensor3;
+    //! Data Layout for fourth order tensor quantity that lives at nodes
+    Teuchos::RCP<PHX::DataLayout> node_tensor4;
+
+    //! Data Layout for scalar quantity that lives at quad points
+    Teuchos::RCP<PHX::DataLayout> qp_scalar;
+    //! Data Layout for vector quantity that lives at quad points
+    Teuchos::RCP<PHX::DataLayout> qp_vector;
     //! Data Layout for gradient quantity that lives at quad points
     Teuchos::RCP<PHX::DataLayout> qp_gradient;
     //! Data Layout for vector quantity that lives at quad points, with dimension of the ambient space
     Teuchos::RCP<PHX::DataLayout> qp_vector_spacedim;
-    //! Data Layout for gradient quantity that lives on a cell
-    Teuchos::RCP<PHX::DataLayout> cell_gradient;
-    //! Data Layout for gradient quantity that lives on a face
-    Teuchos::RCP<PHX::DataLayout> face_gradient;
-    //! Data Layout for tensor quantity that lives at nodes
-    Teuchos::RCP<PHX::DataLayout> node_tensor;
     //! Data Layout for tensor quantity that lives at quad points
     Teuchos::RCP<PHX::DataLayout> qp_tensor;
     //! Data Layout for tensor quantity (cellDim x sideDim) that lives at quad points.
     Teuchos::RCP<PHX::DataLayout> qp_tensor_cd_sd;
-    //! Data Layout for tensor quantity that lives on a cell
-    Teuchos::RCP<PHX::DataLayout> cell_tensor;
-    //! Data Layout for tensor quantity that lives on a face
-    Teuchos::RCP<PHX::DataLayout> face_tensor;
     //! Data Layout for tensor gradient quantity that lives at quad points
     Teuchos::RCP<PHX::DataLayout> qp_tensorgradient;
-    //! Data Layout for vector gradient quantity that lives at nodes
-    Teuchos::RCP<PHX::DataLayout> node_vecgradient;
     //! Data Layout for vector gradient quantity that lives at quad points
     Teuchos::RCP<PHX::DataLayout> qp_vecgradient;
-    //! Data Layout for vector gradient quantity that lives on a cell
-    Teuchos::RCP<PHX::DataLayout> cell_vecgradient;
-    //! Data Layout for vector gradient quantity that lives on a face
-    Teuchos::RCP<PHX::DataLayout> face_vecgradient;
-    //! Data Layout for third order tensor quantity that lives at nodes
-    Teuchos::RCP<PHX::DataLayout> node_tensor3;
     //! Data Layout for third order tensor quantity that lives at quad points
     Teuchos::RCP<PHX::DataLayout> qp_tensor3;
-    //! Data Layout for third order tensor quantity that lives on a cell
-    Teuchos::RCP<PHX::DataLayout> cell_tensor3;
-    //! Data Layout for third order tensor quantity that lives on a face
-    Teuchos::RCP<PHX::DataLayout> face_tensor3;
-    //! Data Layout for fourth order tensor quantity that lives at nodes
-    Teuchos::RCP<PHX::DataLayout> node_tensor4;
     //! Data Layout for fourth order tensor quantity that lives at quad points
     Teuchos::RCP<PHX::DataLayout> qp_tensor4;
-    //! Data Layout for fourth order tensor quantity that lives on a cell
-    Teuchos::RCP<PHX::DataLayout> cell_tensor4;
-    //! Data Layout for fourth order tensor quantity that lives on a face
-    Teuchos::RCP<PHX::DataLayout> face_tensor4;
+
     //! Data Layout for vector quantity that lives at vertices (coordinates) //FIXME: dont oords live at nodes, not vertices?
     Teuchos::RCP<PHX::DataLayout> vertices_vector;
     Teuchos::RCP<PHX::DataLayout> qp_coords;
@@ -97,17 +112,6 @@ namespace Albany {
     //! Data Layout for gradient basis functions
     Teuchos::RCP<PHX::DataLayout> node_qp_gradient;
     Teuchos::RCP<PHX::DataLayout> node_qp_vector; // Old, but incorrect name
-
-    //! Data Layout for scalar quantity on workset
-    Teuchos::RCP<PHX::DataLayout> workset_scalar;
-    //! Data Layout for vector quantity on workset
-    Teuchos::RCP<PHX::DataLayout> workset_vector;
-    //! Data Layout for gradient quantity on workset
-    Teuchos::RCP<PHX::DataLayout> workset_gradient;
-    //! Data Layout for tensor quantity on workset
-    Teuchos::RCP<PHX::DataLayout> workset_tensor;
-    //! Data Layout for vector gradient quantity on workset
-    Teuchos::RCP<PHX::DataLayout> workset_vecgradient;
 
     //! Data Layout for scalar quantity that is hosted by nodes
     Teuchos::RCP<PHX::DataLayout> node_node_scalar;
@@ -139,6 +143,10 @@ namespace Albany {
 
     std::map<std::string,Teuchos::RCP<Layouts>> side_layouts;
   };
+
+  // Free function that, given a name, returns the proper PHX layout
+  Teuchos::RCP<PHX::DataLayout>
+  getLayout(const std::string& name, const Layouts& dl);
 
 } // namespace Albany
 
