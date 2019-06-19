@@ -37,6 +37,7 @@
 #include "LandIce_IceOverburden.hpp"
 #include "LandIce_ParamEnum.hpp"
 #include "LandIce_ProblemUtils.hpp"
+#include "LandIce_SimpleOperationEvaluator.hpp"
 #include "LandIce_SharedParameter.hpp"
 #include "LandIce_StokesFOBasalResid.hpp"
 #include "LandIce_StokesFOLateralResid.hpp"
@@ -123,6 +124,9 @@ protected:
   template <typename EvalT>
   void constructSMBEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
                                const Albany::MeshSpecsStruct& meshSpecs);
+
+  template <typename EvalT>
+  void constructSimpleEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0);
 
   template <typename EvalT> Teuchos::RCP<const PHX::FieldTag>
   constructStokesFOBaseResponsesEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
@@ -262,6 +266,9 @@ constructStokesFOBaseEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
 
   // --- Basal BC evaluators (if needed) --- //
   constructBasalBCEvaluators<EvalT> (fm0);
+
+  // --- Automatic Simple Evaluator construction --- //
+  constructSimpleEvaluators<EvalT> (fm0);
 }
 
 template <typename EvalT>
@@ -1424,6 +1431,22 @@ void StokesFOBase::constructSMBEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>
     p->set<std::string>("Divergence Variable Name", vertically_averaged_velocity_side_name  + " Divergence");
 
     ev = Teuchos::rcp(new LandIce::DOFDivInterpolationSide<EvalT,PHAL::AlbanyTraits>(*p,dl_side));
+    fm0.template registerEvaluator<EvalT>(ev);
+  }
+}
+
+template <typename EvalT>
+void StokesFOBase::constructSimpleEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0)
+{
+  using ScalarT = typename EvalT::ScalarT;
+  using ParamScalarT = typename EvalT::MeshScalarT;
+  using MeshScalarT = typename EvalT::MeshScalarT;
+  Teuchos::RCP<PHX::Evaluator<PHAL::AlbanyTraits> > ev;
+  auto& pl = params->sublist("Simple Evaluators");
+  for (int i=0; i<pl.get<int>("Number",0); ++i) {
+    const auto& ev_pl = pl.sublist(Albany::strint("Evaluator",i));
+
+    ev = buildSimpleEvaluator<EvalT,PHAL::AlbanyTraits>(ev_pl,dl);
     fm0.template registerEvaluator<EvalT>(ev);
   }
 }

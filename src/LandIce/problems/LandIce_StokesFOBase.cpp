@@ -262,6 +262,7 @@ StokesFOBase::getStokesFOBaseProblemParameters () const
   validPL->sublist("LandIce Field Norm", false, "");
   validPL->sublist("LandIce Physical Parameters", false, "");
   validPL->sublist("LandIce Noise", false, "");
+  validPL->sublist("Simple Evaluators", false, "");
   validPL->set<bool>("Use Time Parameter", false, "Solely to use Solver Method = Continuation");
   validPL->set<bool>("Print Stress Tensor", false, "Whether to save stress tensor in the mesh");
 

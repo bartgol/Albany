@@ -293,6 +293,7 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   bool nodal_state, scalar_state;
   std::map<std::string, bool> is_input_state_scalar;
   std::map<std::string, bool> is_input_state_nodal;
+  std::map<std::string, bool> is_input_state;
   // Loop over the number of required fields
   for (int ifield=0; ifield<num_fields; ++ifield)
   {
@@ -401,6 +402,7 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
         ev = Teuchos::rcp(new PHAL::LoadStateField<EvalT,PHAL::AlbanyTraits>(*p));
         fm0.template registerEvaluator<EvalT>(ev);
       }
+      is_input_state[stateName] = true;
       is_input_state_scalar[stateName] = scalar_state;
       is_input_state_nodal[stateName]  = nodal_state;
     }
@@ -700,23 +702,31 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   fm0.template registerEvaluator<EvalT>(ev);
 
   // ------- Sliding Velocity -------- //
-  p = Teuchos::rcp(new Teuchos::ParameterList("LandIce Velocity Norm"));
+  if (!is_input_state[sliding_velocity_name]) {
+    p = Teuchos::rcp(new Teuchos::ParameterList("LandIce Velocity Norm"));
 
-  // Input
-  p->set<std::string>("Field Name",basal_velocity_name);
-  p->set<std::string>("Field Layout","Cell QuadPoint Vector");
-  p->set<Teuchos::ParameterList*>("Parameter List", &params->sublist("LandIce Field Norm"));
+    // Input
+    p->set<std::string>("Field Name",basal_velocity_name);
+    p->set<std::string>("Field Layout","Cell QuadPoint Vector");
+    p->set<Teuchos::ParameterList*>("Parameter List", &params->sublist("LandIce Field Norm"));
 
-  // Output
-  p->set<std::string>("Field Norm Name",sliding_velocity_name);
+    // Output
+    p->set<std::string>("Field Norm Name",sliding_velocity_name);
 
-  ev = Teuchos::rcp(new PHAL::FieldFrobeniusNormParam<EvalT,PHAL::AlbanyTraits>(*p,dl));
-  fm0.template registerEvaluator<EvalT>(ev);
+    ev = Teuchos::rcp(new PHAL::FieldFrobeniusNormParam<EvalT,PHAL::AlbanyTraits>(*p,dl));
+    fm0.template registerEvaluator<EvalT>(ev);
 
-  // ------- Sliding Velocity at nodes (for output in the mesh, if needed) -------- //
-  p->set<std::string>("Field Layout","Cell Node Vector");
-  ev = Teuchos::rcp(new PHAL::FieldFrobeniusNormParam<EvalT,PHAL::AlbanyTraits>(*p,dl));
-  fm0.template registerEvaluator<EvalT>(ev);
+    // ------- Sliding Velocity at nodes (for output in the mesh, if needed) -------- //
+    p->set<std::string>("Field Layout","Cell Node Vector");
+    ev = Teuchos::rcp(new PHAL::FieldFrobeniusNormParam<EvalT,PHAL::AlbanyTraits>(*p,dl));
+    fm0.template registerEvaluator<EvalT>(ev);
+  } else {
+    // We already have the sliding velocity. Let's just make sure the user
+    // did not specify both basal_velocity and sliding_velocity as inputs,
+    // since we are not really sure which one we should use
+    TEUCHOS_TEST_FOR_EXCEPTION(is_input_state[basal_velocity_name], std::logic_error,
+                               "Error! Both '" + std::string(basal_velocity_name) + "' and '" + sliding_velocity_name + "' are specified as input fields.\n       Please, specify only one of them.\n");
+  }
 
   // ------- Hydraulic Potential Gradient Norm -------- //
   p = Teuchos::rcp(new Teuchos::ParameterList("LandIce Velocity Norm"));
@@ -766,12 +776,12 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   //Output
   p->set<std::string>("Basal Friction Coefficient Variable Name", beta_name);
 
-  ev = Teuchos::rcp(new LandIce::BasalFrictionCoefficient<EvalT,PHAL::AlbanyTraits,true,false,false>(*p,dl));
+  ev = createEvaluatorWithThreeScalarTypes<LandIce::BasalFrictionCoefficient, EvalT>(p,dl, FieldScalarType::Scalar, FieldScalarType::ParamScalar,FieldScalarType::ParamScalar);
   fm0.template registerEvaluator<EvalT>(ev);
 
   //--- LandIce basal friction coefficient nodal (for output in the mesh, if needed) ---//
   p->set<bool>("Nodal",true);
-  ev = Teuchos::rcp(new LandIce::BasalFrictionCoefficient<EvalT,PHAL::AlbanyTraits,true,false,false>(*p,dl));
+  ev = createEvaluatorWithThreeScalarTypes<LandIce::BasalFrictionCoefficient, EvalT>(p,dl, FieldScalarType::Scalar, FieldScalarType::ParamScalar,FieldScalarType::ParamScalar);
   fm0.template registerEvaluator<EvalT>(ev);
 
   // ------- Hydrology Residual Mass Eqn-------- //
@@ -879,7 +889,7 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
 
   //Input
   p->set<std::string> ("Input Field Name",ParamEnumName::HomotopyParam);
-  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->shared_param);
+  p->set<std::string> ("Field Layout","Shared Param");
   p->set<double>("Tau",-10.0*log(10.0));
 
   //Output
