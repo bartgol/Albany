@@ -3064,6 +3064,22 @@ STKDiscretization::updateMesh()
         param_state.name, param_state.meshPart, numComps);
   }
 
+  if (discParams->get("Build States DOF Structs",false)) {
+    const StateInfoStruct& nodal_states = stkMeshStruct->getFieldContainer()->getNodalSIS();
+    for (size_t is = 0; is < nodal_states.size(); is++) {
+      const StateStruct&            state = *nodal_states[is];
+      const StateStruct::FieldDims&   dim = state.dim;
+      int                        numComps = 1;
+      if (dim.size() == 3) {  // vector
+        numComps = dim[2];
+      } else if (dim.size() == 4) {  // tensor
+        numComps = dim[2] * dim[3];
+      }
+
+      nodalDOFsStructContainer.addEmptyDOFsStruct(state.name, state.meshPart, numComps);
+    }
+  }
+
   computeNodalVectorSpaces(false);
 
   computeOwnedNodesAndUnknowns();
@@ -3111,9 +3127,10 @@ STKDiscretization::updateMesh()
 
   // If the mesh struct stores sideSet mesh structs, we update them
   if (stkMeshStruct->sideSetMeshStructs.size() > 0) {
+    auto ss_discs_pl = Teuchos::sublist(discParams,"Side Set Discretizations");
     for (auto it : stkMeshStruct->sideSetMeshStructs) {
-      Teuchos::RCP<STKDiscretization> side_disc =
-          Teuchos::rcp(new STKDiscretization(discParams, it.second, comm));
+      auto pl = Teuchos::sublist(ss_discs_pl,it.first);
+      auto side_disc = Teuchos::rcp(new STKDiscretization(pl, it.second, comm));
       side_disc->updateMesh();
       sideSetDiscretizations.insert(std::make_pair(it.first, side_disc));
       sideSetDiscretizationsSTK.insert(std::make_pair(it.first, side_disc));
@@ -3125,6 +3142,19 @@ STKDiscretization::updateMesh()
     }
 
     buildSideSetProjectors();
+
+    // // print side disc nodal sis
+    // for (auto sd : sideSetDiscretizations) {
+    //   printf ("disc on ss %s:\n",sd.first.c_str());
+    //   auto stkd = Teuchos::rcp_dynamic_cast<STKDiscretization>(sd.second);
+    //   auto& ndc = stkd->getNodalDOFsStructContainer();
+    //   int i=0;
+    //   for (auto it : ndc.fieldToMap) {
+
+    //     std::cout << "  " << i << ": " << it.first << " on part " << it.second->first.first << ", with " << it.second->first.second << " components.\n";
+    //     ++i;
+    //   }
+    // }
   }
 }
 

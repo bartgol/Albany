@@ -798,8 +798,10 @@ void GenericSTKMeshStruct::checkNodeSetsFromSideSetsIntegrity ()
     unsigned num_nodes = metaData->get_topology(*ssPart).num_nodes();
     for (const auto& side : sides)
     {
-      TEUCHOS_TEST_FOR_EXCEPTION (bulkData->num_nodes(side)==num_nodes, std::runtime_error,
-                                  "Error! Found a side with wrong number of nodes stored. Most likely,"
+      TEUCHOS_TEST_FOR_EXCEPTION (bulkData->num_nodes(side)!=num_nodes, std::runtime_error,
+                                  "Error! Found a side with wrong number of nodes stored (" +
+                                  std::to_string(bulkData->num_nodes(side)) + " instead of " +
+                                  std::to_string(num_nodes) + "). Most likely,"
                                   "its nodes were not added to the side with 'declare_relation').\n");
     }
   }
@@ -815,7 +817,7 @@ void GenericSTKMeshStruct::initializeSideSetMeshSpecs (const Teuchos::RCP<const 
       TEUCHOS_TEST_FOR_EXCEPTION (part==nullptr, std::runtime_error, "Error! One of the stored meshSpecs claims to have sideset " + ssName +
                                                                      " which, however, is not a part of the mesh.\n");
 
-      const auto* ctd = metaData->get_cell_topology(*part).getCellTopologyData();;
+      const auto* ctd = stk::mesh::get_cell_topology(metaData->get_topology(*part)).getCellTopologyData();;
 
       auto& ss_ms = ms->sideSetMeshSpecs[ssName];
 
@@ -1952,6 +1954,7 @@ GenericSTKMeshStruct::getValidGenericSTKParameters(std::string listname) const
   validPL->set<bool>("Use Composite Tet 10", false, "Flag to use the composite tet 10 basis in Intrepid");
   validPL->set<bool>("Build Node Sets From Side Sets",false,"Flag to build node sets from side sets");
   validPL->set<bool>("Export 3d coordinates field",false,"If true AND the mesh dimension is not already 3, export a 3d version of the coordinate field.");
+  validPL->set<bool>("Build States DOF Structs",false,"If true, builds a DOFsStruct for every nodal state (even if not a distributed parameter).");
 
   validPL->sublist("Required Fields Info", false, "Info for the creation of the required fields in the STK mesh");
 
