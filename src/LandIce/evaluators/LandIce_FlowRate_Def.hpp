@@ -12,8 +12,8 @@
 namespace LandIce {
 
 //**********************************************************************
-template<typename EvalT, typename Traits>
-FlowRate<EvalT, Traits>::FlowRate (const Teuchos::ParameterList& p,
+template<typename EvalT, typename Traits, typename InOutScalarT>
+FlowRate<EvalT, Traits, InOutScalarT>::FlowRate (const Teuchos::ParameterList& p,
                                    const Teuchos::RCP<Albany::Layouts>& dl) :
   flowRate (p.get<std::string> ("Flow Rate Variable Name"), dl->cell_scalar2)
 {
@@ -62,29 +62,8 @@ FlowRate<EvalT, Traits>::FlowRate (const Teuchos::ParameterList& p,
 }
 
 //**********************************************************************
-template<typename EvalT, typename Traits>
-void FlowRate<EvalT, Traits>::
-postRegistrationSetup(typename Traits::SetupData d,
-                      PHX::FieldManager<Traits>& fm)
-{
-  switch (flowRate_type)
-  {
-    case TEMPERATURE_BASED:
-      this->utils.setFieldData(temperature,fm);
-      break;
-    case GIVEN_FIELD:
-      this->utils.setFieldData(given_flow_rate,fm);
-      break;
-    default:
-      ; //nothing to do
-  }
-
-  this->utils.setFieldData(flowRate,fm);
-}
-
-//**********************************************************************
-template<typename EvalT, typename Traits>
-void FlowRate<EvalT, Traits>::evaluateFields (typename Traits::EvalData workset)
+template<typename EvalT, typename Traits, typename InOutScalarT>
+void FlowRate<EvalT, Traits, InOutScalarT>::evaluateFields (typename Traits::EvalData workset)
 {
   switch (flowRate_type)
   {

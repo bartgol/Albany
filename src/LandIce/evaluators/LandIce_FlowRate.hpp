@@ -23,9 +23,9 @@ namespace LandIce
     This evaluator evaluates the residual of the Hydrology model
 */
 
-template<typename EvalT, typename Traits>
+template<typename EvalT, typename Traits, typename InOutScalarT>
 class FlowRate : public PHX::EvaluatorWithBaseImpl<Traits>,
-                          public PHX::EvaluatorDerived<EvalT, Traits>
+                 public PHX::EvaluatorDerived<EvalT, Traits>
 {
 public:
 
@@ -34,21 +34,19 @@ public:
   FlowRate (const Teuchos::ParameterList& p,
             const Teuchos::RCP<Albany::Layouts>& dl);
 
-  void postRegistrationSetup (typename Traits::SetupData d,
-                              PHX::FieldManager<Traits>& fm);
+  void postRegistrationSetup (typename Traits::SetupData /* d */,
+                              PHX::FieldManager<Traits>& /* fm */) {}
 
   void evaluateFields(typename Traits::EvalData d);
 
 private:
 
-  typedef typename EvalT::ParamScalarT ParamScalarT;
-
   // Input:
-  PHX::MDField<const ParamScalarT,Cell> given_flow_rate;
-  PHX::MDField<const ParamScalarT,Cell> temperature;
+  PHX::MDField<const InOutScalarT,Cell> given_flow_rate;
+  PHX::MDField<const InOutScalarT,Cell> temperature;
 
   // Output:
-  PHX::MDField<ParamScalarT,Cell> flowRate;
+  PHX::MDField<InOutScalarT,Cell> flowRate;
 
   double A;
   enum FlowRateType {UNIFORM, GIVEN_FIELD, TEMPERATURE_BASED};

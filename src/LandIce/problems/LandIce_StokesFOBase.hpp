@@ -839,18 +839,21 @@ constructVelocityEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
       p = Teuchos::rcp(new Teuchos::ParameterList("LandIce FlowRate"));
 
       //Input
+      FieldScalarType temp_st;
       if (viscosity_use_corrected_temperature) {
         p->set<std::string>("Temperature Variable Name", "corrected_temperature_name");
+        temp_st = field_scalar_type[corrected_temperature_name];
       } else {
         // Avoid pointless calculation, and use original temperature in viscosity calculation
         p->set<std::string>("Temperature Variable Name", temperature_name);
+        temp_st = field_scalar_type[temperature_name];
       }
       p->set<Teuchos::ParameterList*>("Parameter List", &params->sublist("LandIce Viscosity"));
 
       //Output
       p->set<std::string>("Flow Rate Variable Name", flow_factor_name);
 
-      ev = Teuchos::rcp(new LandIce::FlowRate<EvalT,PHAL::AlbanyTraits>(*p,dl));
+      ev = createEvaluatorWithOneScalarType<LandIce::FlowRate,EvalT>(p,dl,temp_st);
       fm0.template registerEvaluator<EvalT>(ev);
     }
   }
@@ -1208,36 +1211,20 @@ void StokesFOBase::constructBasalBCEvaluators (PHX::FieldManager<PHAL::AlbanyTra
 
     std::string bft = util::upper_case(pl->sublist("Basal Friction Coefficient").get<std::string>("Type"));
 
-    if (temperature_coupled) {
-      if (hydrology_coupled) {
-        ev = createEvaluatorWithThreeScalarTypes<LandIce::BasalFrictionCoefficient, EvalT>(p,dl_side, FieldScalarType::Scalar, FieldScalarType::Scalar,FieldScalarType::Scalar);
-      } else {
-        ev = createEvaluatorWithThreeScalarTypes<LandIce::BasalFrictionCoefficient, EvalT>(p,dl_side, FieldScalarType::ParamScalar, FieldScalarType::Scalar,FieldScalarType::Scalar);
-      }
-    } else {
-      if (hydrology_coupled) {
-        ev = createEvaluatorWithThreeScalarTypes<LandIce::BasalFrictionCoefficient, EvalT>(p,dl_side, FieldScalarType::Scalar, FieldScalarType::Scalar,FieldScalarType::ParamScalar);
-      } else {
-        ev = createEvaluatorWithThreeScalarTypes<LandIce::BasalFrictionCoefficient, EvalT>(p,dl_side, FieldScalarType::Real, FieldScalarType::Scalar,FieldScalarType::ParamScalar);
-      }
-    }
+    ev = createEvaluatorWithThreeScalarTypes<LandIce::BasalFrictionCoefficient, EvalT>(
+                  p,dl_side,
+                  field_scalar_type[effective_pressure_name],
+                  FieldScalarType::Scalar,
+                  field_scalar_type[flow_factor_name]);
     fm0.template registerEvaluator<EvalT>(ev);
 
     //--- LandIce basal friction coefficient at nodes ---//
     p->set<bool>("Nodal",true);
-    if (temperature_coupled) {
-      if (hydrology_coupled) {
-        ev = createEvaluatorWithThreeScalarTypes<LandIce::BasalFrictionCoefficient, EvalT>(p,dl_side, FieldScalarType::Scalar, FieldScalarType::Scalar,FieldScalarType::Scalar);
-      } else {
-        ev = createEvaluatorWithThreeScalarTypes<LandIce::BasalFrictionCoefficient, EvalT>(p,dl_side, FieldScalarType::ParamScalar, FieldScalarType::Scalar,FieldScalarType::Scalar);
-      }
-    } else {
-      if (hydrology_coupled) {
-        ev = createEvaluatorWithThreeScalarTypes<LandIce::BasalFrictionCoefficient, EvalT>(p,dl_side, FieldScalarType::Scalar, FieldScalarType::Scalar,FieldScalarType::ParamScalar);
-      } else {
-        ev = createEvaluatorWithThreeScalarTypes<LandIce::BasalFrictionCoefficient, EvalT>(p,dl_side, FieldScalarType::Real, FieldScalarType::Scalar,FieldScalarType::ParamScalar);
-      }
-    }
+    ev = createEvaluatorWithThreeScalarTypes<LandIce::BasalFrictionCoefficient, EvalT>(
+                  p,dl_side,
+                  field_scalar_type[effective_pressure_name],
+                  FieldScalarType::Scalar,
+                  field_scalar_type[flow_factor_name]);
     fm0.template registerEvaluator<EvalT>(ev);
   }
 }

@@ -466,6 +466,19 @@ void StokesFOBase::setFieldsProperties ()
   } else {
     setSingleFieldProperties(flow_factor_name, 0, FieldScalarType::MeshScalar | field_scalar_type[temperature_name], FieldLocation::Cell);
   }
+
+  if(params->sublist("LandIce Viscosity").isParameter("Flow Rate Type")) {
+    is_computed_field[flow_factor_name] = true;
+    const auto flow_rate_type = params->sublist("LandIce Viscosity").get<std::string>("Flow Rate Type");
+    FieldScalarType flow_rate_st = FieldScalarType::Real;
+    if(flow_rate_type == "Temperature Based") {
+      flow_rate_st = viscosity_use_corrected_temperature
+                                 ? field_scalar_type[corrected_temperature_name]
+                                 : field_scalar_type[temperature_name];
+
+    }
+    setSingleFieldProperties(flow_factor_name, 0, FieldScalarType::Real, FieldLocation::Cell);
+  }
 }
 
 void StokesFOBase::setupEvaluatorRequests ()
@@ -503,6 +516,7 @@ void StokesFOBase::setupEvaluatorRequests ()
       ss_build_interp_ev[ssName][effective_pressure_name][InterpolationRequest::QP_VAL ] = true;
     ss_build_interp_ev[ssName][effective_pressure_name][InterpolationRequest::GRAD_QP_VAL ] = true; 
     ss_build_interp_ev[ssName][effective_pressure_name][InterpolationRequest::CELL_TO_SIDE] = true; 
+    ss_build_interp_ev[ssName][flow_factor_name][InterpolationRequest::CELL_TO_SIDE ] = true; 
 
     // For "Given Field" and "Exponent of Given Field" we also need to interpolate the given field at the quadrature points
     auto& bfc = it->sublist("Basal Friction Coefficient");
