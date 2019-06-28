@@ -884,20 +884,6 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
     fm0.template registerEvaluator<EvalT>(ev);
   }
 
-  // -------- Regularization from Homotopy Parameter h: reg = 10^(-10*h)
-  p = Teuchos::rcp(new Teuchos::ParameterList("Simple Op"));
-
-  //Input
-  p->set<std::string> ("Input Field Name",ParamEnumName::HomotopyParam);
-  p->set<std::string> ("Field Layout","Shared Param");
-  p->set<double>("Tau",-10.0*log(10.0));
-
-  //Output
-  p->set<std::string> ("Output Field Name","Regularization");
-
-  ev = Teuchos::rcp(new LandIce::UnaryExpOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ScalarT>(*p,dl));
-  fm0.template registerEvaluator<EvalT>(ev);
-
   //--- Shared Parameter for hydrology cavities equation: creep ---//
   p = Teuchos::rcp(new Teuchos::ParameterList("Cavities Equation: creep"));
 
@@ -985,12 +971,26 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   ptr_homotopy->setNominalValue(params->sublist("Parameters"),params->sublist("LandIce Hydrology").sublist("Darcy Law").get<double>(param_name,1.0));
   fm0.template registerEvaluator<EvalT>(ptr_homotopy);
 
+  // -------- Regularization from Homotopy Parameter h: reg = 10^(-10*h)
+  p = Teuchos::rcp(new Teuchos::ParameterList("Simple Op"));
+
+  //Input
+  p->set<std::string> ("Input Field Name",ParamEnumName::HomotopyParam);
+  p->set<std::string> ("Field Layout","Shared Param");
+  p->set<double>("Tau",-10.0*log(10.0));
+
+  //Output
+  p->set<std::string> ("Output Field Name","Regularization");
+
+  ev = Teuchos::rcp(new LandIce::UnaryExpOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ScalarT>(*p,dl));
+  fm0.template registerEvaluator<EvalT>(ev);
+
   // -------- Log of beta (nodal)
   p = Teuchos::rcp(new Teuchos::ParameterList("Simple Op"));
 
   //Input
   p->set<std::string> ("Input Field Name",beta_name);
-  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->node_scalar);
+  p->set<std::string> ("Field Layout","Node Scalar");
   p->set<double>("Factor",1.0);
 
   //Output
@@ -1004,7 +1004,7 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
 
   //Input
   p->set<std::string> ("Input Field Name",beta_name);
-  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->qp_scalar);
+  p->set<std::string> ("Field Layout","QuadPoint Scalar");
   p->set<double>("Factor",1.0);
 
   //Output
@@ -1024,12 +1024,12 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   p->set<std::string> ("Output Field Name","log_basal_friction");
 
   // nodal
-  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->node_scalar);
+  p->set<std::string> ("Field Layout","Node Scalar");
   ev = Teuchos::rcp(new LandIce::UnaryLogOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
 
   // qp
-  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->qp_scalar);
+  p->set<std::string> ("Field Layout","QuadPoint Scalar");
   ev = Teuchos::rcp(new LandIce::UnaryLogOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
 
@@ -1044,12 +1044,12 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   p->set<std::string> ("Output Field Name","filtered_log_basal_friction");
 
   // nodal
-  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->node_scalar);
+  p->set<std::string> ("Field Layout","Node Scalar");
   ev = Teuchos::rcp(new LandIce::UnaryLowPassOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
 
   // qp
-  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->qp_scalar);
+  p->set<std::string> ("Field Layout","QuadPoint Scalar");
   ev = Teuchos::rcp(new LandIce::UnaryLowPassOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
 
@@ -1064,12 +1064,12 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
   p->set<std::string> ("Output Field Name","filtered_log_beta");
 
   // nodal
-  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->node_scalar);
+  p->set<std::string> ("Field Layout","Node Scalar");
   ev = Teuchos::rcp(new LandIce::UnaryLowPassOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ScalarT>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
 
   // qp
-  p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->qp_scalar);
+  p->set<std::string> ("Field Layout","QuadPoint Scalar");
   ev = Teuchos::rcp(new LandIce::UnaryLowPassOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ScalarT>(*p,dl));
   fm0.template registerEvaluator<EvalT>(ev);
 
@@ -1087,11 +1087,11 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
     p->set<std::string> ("Output Field Name","exp_" + lambda_field_name);
 
     // qp
-    p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->qp_scalar);
+    p->set<std::string> ("Field Layout","QuadPoint Scalar");
     ev = Teuchos::rcp(new LandIce::UnaryExpOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
     fm0.template registerEvaluator<EvalT>(ev);
     // node
-    p->set<Teuchos::RCP<PHX::DataLayout>> ("Field Layout",dl->node_scalar);
+    p->set<std::string> ("Field Layout","Node Scalar");
     ev = Teuchos::rcp(new LandIce::UnaryExpOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
     fm0.template registerEvaluator<EvalT>(ev);
   }
