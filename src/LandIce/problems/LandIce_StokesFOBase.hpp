@@ -1425,9 +1425,6 @@ void StokesFOBase::constructSMBEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>
 template <typename EvalT>
 void StokesFOBase::constructSimpleEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0)
 {
-  using ScalarT = typename EvalT::ScalarT;
-  using ParamScalarT = typename EvalT::MeshScalarT;
-  using MeshScalarT = typename EvalT::MeshScalarT;
   Teuchos::RCP<PHX::Evaluator<PHAL::AlbanyTraits> > ev;
   auto& pl = params->sublist("Simple Evaluators");
   for (int i=0; i<pl.get<int>("Number",0); ++i) {

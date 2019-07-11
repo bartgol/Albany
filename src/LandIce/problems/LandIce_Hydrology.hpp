@@ -163,31 +163,31 @@ protected:
   /// Boolean marking whether SDBCs are used
   bool use_sdbcs_;
 
-  static constexpr char water_pressure_name[]           = "water_pressure";
-  static constexpr char water_thickness_name[]          = "water_thickness";
-  static constexpr char till_water_storage_name[]       = "till_water_storage";
-  static constexpr char water_pressure_dot_name[]       = "water_pressure_dot";
-  static constexpr char water_thickness_dot_name[]      = "water_thickness_dot";
-  static constexpr char till_water_storage_dot_name[]   = "till_water_storage_dot";
+  std::string water_pressure_name;
+  std::string water_thickness_name;
+  std::string till_water_storage_name;
+  std::string water_pressure_dot_name;
+  std::string water_thickness_dot_name;
+  std::string till_water_storage_dot_name;
 
-  static constexpr char hydropotential_name[]           = "hydropotential";
-  static constexpr char hydropotential_grad_name[]      = "hydropotential Gradient";
-  static constexpr char hydropotential_grad_norm_name[] = "hydropotential Gradient Norm";
-  static constexpr char ice_softness_name[]             = "ice_softness";
-  static constexpr char ice_overburden_name[]           = "ice_overburden";
-  static constexpr char effective_pressure_name[]       = "effective_pressure";
-  static constexpr char ice_temperature_name[]          = "ice_temperature";
-  static constexpr char ice_thickness_name[]            = "ice_thickness";
-  static constexpr char surface_height_name[]           = "surface_height";
-  static constexpr char beta_name[]                     = "beta";
-  static constexpr char melting_rate_name[]             = "melting_rate";
-  static constexpr char surface_water_input_name[]      = "surface_water_input";
-  static constexpr char surface_mass_balance_name[]     = "surface_mass_balance";
-  static constexpr char geothermal_flux_name[]          = "geothermal_flux";
-  static constexpr char water_discharge_name[]          = "water_discharge";
-  static constexpr char sliding_velocity_name[]         = "sliding_velocity";
-  static constexpr char basal_velocity_name[]           = "basal_velocity";
-  static constexpr char grav_hydropotential_name[]      = "grav_hydropotential";
+  std::string hydropotential_name;
+  std::string hydropotential_grad_name;
+  std::string hydropotential_grad_norm_name;
+  std::string ice_softness_name;
+  std::string ice_overburden_name;
+  std::string effective_pressure_name;
+  std::string ice_temperature_name;
+  std::string ice_thickness_name;
+  std::string surface_height_name;
+  std::string beta_name;
+  std::string melting_rate_name;
+  std::string surface_water_input_name;
+  std::string surface_mass_balance_name;
+  std::string geothermal_flux_name;
+  std::string water_discharge_name;
+  std::string sliding_velocity_name;
+  std::string basal_velocity_name;
+  std::string grav_hydropotential_name;
 };
 
 // ===================================== IMPLEMENTATION ======================================= //
@@ -1093,6 +1093,14 @@ Hydrology::constructEvaluators (PHX::FieldManager<PHAL::AlbanyTraits>& fm0,
     // node
     p->set<std::string> ("Field Layout","Node Scalar");
     ev = Teuchos::rcp(new LandIce::UnaryExpOp<EvalT,PHAL::AlbanyTraits,typename EvalT::ParamScalarT>(*p,dl));
+    fm0.template registerEvaluator<EvalT>(ev);
+  }
+
+  auto& pl = params->sublist("Simple Evaluators");
+  for (int i=0; i<pl.get<int>("Number",0); ++i) {
+    const auto& ev_pl = pl.sublist(Albany::strint("Evaluator",i));
+
+    ev = buildSimpleEvaluator<EvalT,PHAL::AlbanyTraits>(ev_pl,dl);
     fm0.template registerEvaluator<EvalT>(ev);
   }
 

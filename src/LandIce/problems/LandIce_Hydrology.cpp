@@ -73,6 +73,36 @@ Hydrology::Hydrology (const Teuchos::RCP<Teuchos::ParameterList>& problemParams_
   dofs_names.resize(neq);
   resid_names.resize(neq);
 
+  // Set the names of different fields fields
+  water_pressure_name           = "water_pressure";
+  water_thickness_name          = "water_thickness";
+  till_water_storage_name       = "till_water_storage";
+  water_pressure_dot_name       = "water_pressure_dot";
+  water_thickness_dot_name      = "water_thickness_dot";
+  till_water_storage_dot_name   = "till_water_storage_dot";
+
+  hydropotential_name           = "hydropotential";
+  hydropotential_grad_name      = "hydropotential Gradient";
+  hydropotential_grad_norm_name = "hydropotential Gradient Norm";
+  ice_softness_name             = "ice_softness";
+  ice_overburden_name           = "ice_overburden";
+  effective_pressure_name       = "effective_pressure";
+  ice_temperature_name          = "ice_temperature";
+  ice_thickness_name            = "ice_thickness";
+  surface_height_name           = "surface_height";
+  beta_name                     = "beta";
+  melting_rate_name             = "melting_rate";
+  surface_water_input_name      = "surface_water_input";
+  surface_mass_balance_name     = "surface_mass_balance";
+  geothermal_flux_name          = "geothermal_flux";
+  water_discharge_name          = "water_discharge";
+  sliding_velocity_name         = "sliding_velocity";
+  grav_hydropotential_name      = "grav_hydropotential";
+
+  auto& pl = params->sublist("Variables Names");
+  basal_velocity_name = pl.get<std::string>("Basal Velocity Name","basal_velocity");
+  sliding_velocity_name = pl.get<std::string>("Sliding Velocity Name","sliding_velocity");
+
   // We always solve for the water pressure
   dofs_names[0] = water_pressure_name;
   resid_names[0] = "Residual Mass Eqn";
@@ -234,36 +264,11 @@ Hydrology::getValidProblemParameters () const
   validPL->sublist("LandIce Field Norm", false, "");
   validPL->sublist("LandIce Viscosity", false, "");
   validPL->sublist("LandIce Physical Parameters", false, "");
+  validPL->sublist("Variables Names", false, "");
+  validPL->sublist("Simple Evaluators", false, "");
   validPL->sublist("LandIce Basal Friction Coefficient", false, "Parameters needed to compute the basal friction coefficient");
 
   return validPL;
 }
-
-constexpr char Hydrology::water_pressure_name[]           ;  //= "water_pressure";
-constexpr char Hydrology::water_thickness_name[]          ;  //= "water_thickness";
-constexpr char Hydrology::till_water_storage_name[]       ;  //= "till_water_storage";
-
-constexpr char Hydrology::water_pressure_dot_name[]       ;  //= "water_pressure_dot";
-constexpr char Hydrology::water_thickness_dot_name[]      ;  //= "water_thickness_dot";
-constexpr char Hydrology::till_water_storage_dot_name[]   ;  //= "till_water_storage_dot";
-
-constexpr char Hydrology::hydropotential_name[]           ;  //= "hydraulic_potential";
-constexpr char Hydrology::hydropotential_grad_name[]      ;  //= "hydraulic_potential Gradient";
-constexpr char Hydrology::hydropotential_grad_norm_name[] ;  //= "hydraulic_potential Gradient Norm";
-constexpr char Hydrology::ice_softness_name[]             ;  //= "ice_softness";
-constexpr char Hydrology::ice_overburden_name[]           ;  //= "ice_overburden";
-constexpr char Hydrology::effective_pressure_name[]       ;  //= "effective_pressure";
-constexpr char Hydrology::ice_temperature_name[]          ;  //= "ice_temperature";
-constexpr char Hydrology::ice_thickness_name[]            ;  //= "ice_thickness";
-constexpr char Hydrology::surface_height_name[]           ;  //= "surface_height";
-constexpr char Hydrology::beta_name[]                     ;  //= "beta";
-constexpr char Hydrology::melting_rate_name[]             ;  //= "melting_rate";
-constexpr char Hydrology::surface_water_input_name[]      ;  //= "surface_water_input";
-constexpr char Hydrology::surface_mass_balance_name[]     ;  //= "surface_mass_balance";
-constexpr char Hydrology::geothermal_flux_name[]          ;  //= "geothermal_flux";
-constexpr char Hydrology::water_discharge_name[]          ;  //= "water_discharge";
-constexpr char Hydrology::sliding_velocity_name[]         ;  //= "sliding_velocity";
-constexpr char Hydrology::basal_velocity_name[]           ;  //= "basal_velocity";
-constexpr char Hydrology::grav_hydropotential_name[]      ;  //= "basal_gravitational_water_potential";
 
 } // namespace LandIce
