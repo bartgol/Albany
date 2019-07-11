@@ -43,12 +43,7 @@ public:
     d.fill_field_dependencies(this->dependentFields(),this->evaluatedFields());
   }
 
-  static void setNominalValue (const Teuchos::ParameterList& p, double default_value);
-
-  static ScalarT getValue ()
-  {
-    return value;
-  }
+  void setNominalValue (const Teuchos::ParameterList& p, double default_value);
 
   ScalarT& getValue(const std::string &n)
   {
@@ -58,6 +53,8 @@ public:
     return dummy;
   }
 
+  template<typename T>
+  struct MyDebug {};
   void evaluateFields(typename Traits::EvalData /*d*/)
   {
     param_as_field(0) = value;
@@ -65,9 +62,9 @@ public:
 
 protected:
 
-  static ScalarT              value;
-  static ScalarT              dummy;
-  static std::string          param_name;
+  ScalarT                     value;
+  ScalarT                     dummy;
+  std::string                 param_name;
 
   PHX::MDField<ScalarT,Dim>   param_as_field;
 };
@@ -123,15 +120,6 @@ setNominalValue (const Teuchos::ParameterList& p, double default_value)
 
   dummy = 0;
 }
-
-template<typename EvalT, typename Traits, typename ParamNameEnum, ParamNameEnum ParamName>
-typename EvalT::ScalarT SharedParameter<EvalT,Traits,ParamNameEnum,ParamName>::value;
-
-template<typename EvalT, typename Traits, typename ParamNameEnum, ParamNameEnum ParamName>
-typename EvalT::ScalarT SharedParameter<EvalT,Traits,ParamNameEnum,ParamName>::dummy;
-
-template<typename EvalT, typename Traits, typename ParamNameEnum, ParamNameEnum ParamName>
-std::string SharedParameter<EvalT,Traits,ParamNameEnum,ParamName>::param_name;
 
 } // Namespace LandIce
 
