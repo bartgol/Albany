@@ -302,8 +302,10 @@ void StokesFOBase::parseInputFields ()
       is_dist[param_name+"_lowerbound"] = true;
       dist_params_name_to_mesh_part[param_name+"_lowerbound"] = dist_params_name_to_mesh_part[param_name];
 
-      // set hte scalar type already to ParamScalar
+      // set hte scalar type already to ParamScalar, rank to 0, and location to node
       field_scalar_type[param_name] = FieldScalarType::ParamScalar;
+      field_rank[param_name] = 0;
+      field_location[param_name] = FieldLocation::Node;
     }
   }
 
