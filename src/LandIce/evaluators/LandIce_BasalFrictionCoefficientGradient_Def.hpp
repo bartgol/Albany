@@ -108,7 +108,7 @@ BasalFrictionCoefficientGradient (const Teuchos::ParameterList& p,
 
     vecDim = dl->qp_vecgradient->extent(3);
 
-    A = beta_list.get<double>("Constant Flow Factor A");
+    A = beta_list.get<double>("Constant Flow Factor A", -1.0);
 
     // A*N^{1/q} is dimensionally correct only for q=1/3. To fix this, we modify A
     // so that the formula becomes (A_mod*N)^{1/q}. This means that A_mod = A^{1/3}

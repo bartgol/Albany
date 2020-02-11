@@ -12,8 +12,8 @@
 namespace LandIce {
 
 //**********************************************************************
-template<typename EvalT, typename Traits>
-FlowRate<EvalT, Traits>::FlowRate (const Teuchos::ParameterList& p,
+template<typename EvalT, typename Traits, typename TemperatureST>
+FlowRate<EvalT, Traits, TemperatureST>::FlowRate (const Teuchos::ParameterList& p,
                                    const Teuchos::RCP<Albany::Layouts>& dl) :
   flowRate (p.get<std::string> ("Flow Rate Variable Name"), dl->cell_scalar2)
 {
@@ -25,33 +25,27 @@ FlowRate<EvalT, Traits>::FlowRate (const Teuchos::ParameterList& p,
   else
     flowRateType = "Uniform";
 
-  if (flowRateType == "Uniform")
-  {
+  if (flowRateType == "Uniform") {
     flowRate_type = UNIFORM;
     A = visc_list->get<double>("Glen's Law A");
 #ifdef OUTPUT_TO_SCREEN
     *out << "Uniform Flow Rate A: " << A << std::endl;
 #endif
-  }
-  else if (flowRateType == "Given Field")
-  {
+  } else if (flowRateType == "Given Field") {
     flowRate_type = GIVEN_FIELD;
     given_flow_rate = decltype(given_flow_rate)(p.get<std::string> ("Given Flow Rate Field Name"), dl->cell_scalar2);
     this->addDependentField(given_flow_rate);
 #ifdef OUTPUT_TO_SCREEN
     *out << "Flow Rate read in from file (exodus or ascii) or passed in from CISM." << std::endl;
 #endif
-  }
-  else if (flowRateType == "Temperature Based")
-  {
+  } else if (flowRateType == "Temperature Based") {
     flowRate_type = TEMPERATURE_BASED;
     temperature = decltype(temperature)(p.get<std::string> ("Temperature Variable Name"), dl->cell_scalar2);
     this->addDependentField(temperature);
 #ifdef OUTPUT_TO_SCREEN
     *out << "Flow Rate computed using temperature field." << std::endl;
 #endif
-  }
-  else {
+  } else {
     TEUCHOS_TEST_FOR_EXCEPTION(true, Teuchos::Exceptions::InvalidParameter,
       std::endl << "Error in LandIce::ViscosityFO:  \"" << flowRateType << "\" is not a valid parameter for Flow Rate Type" << std::endl);
   }
@@ -62,9 +56,9 @@ FlowRate<EvalT, Traits>::FlowRate (const Teuchos::ParameterList& p,
 }
 
 //**********************************************************************
-template<typename EvalT, typename Traits>
-void FlowRate<EvalT, Traits>::
-postRegistrationSetup(typename Traits::SetupData d,
+template<typename EvalT, typename Traits, typename TemperatureST>
+void FlowRate<EvalT, Traits, TemperatureST>::
+postRegistrationSetup(typename Traits::SetupData /* d */,
                       PHX::FieldManager<Traits>& fm)
 {
   switch (flowRate_type)
@@ -83,8 +77,8 @@ postRegistrationSetup(typename Traits::SetupData d,
 }
 
 //**********************************************************************
-template<typename EvalT, typename Traits>
-void FlowRate<EvalT, Traits>::evaluateFields (typename Traits::EvalData workset)
+template<typename EvalT, typename Traits, typename TemperatureST>
+void FlowRate<EvalT, Traits, TemperatureST>::evaluateFields (typename Traits::EvalData workset)
 {
   switch (flowRate_type)
   {

@@ -17,7 +17,7 @@
 #include <string.hpp> // for 'upper_case' (comes from src/utility; not to be confused with <string>)
 
 //uncomment the following line if you want debug output to be printed to screen
-//#define OUTPUT_TO_SCREEN
+#define OUTPUT_TO_SCREEN
 
 namespace LandIce
 {
@@ -222,7 +222,7 @@ BasalFrictionCoefficient (const Teuchos::ParameterList& p,
 template<typename EvalT, typename Traits, typename EffPressureST, typename VelocityST, typename TemperatureST>
 void BasalFrictionCoefficient<EvalT, Traits, EffPressureST, VelocityST, TemperatureST>::
 postRegistrationSetup (typename Traits::SetupData d,
-                       PHX::FieldManager<Traits>& fm)
+                       PHX::FieldManager<Traits>& /* fm */)
 {
   if (beta_type == GIVEN_CONSTANT)
     beta.deep_copy(ScalarT(given_val));
@@ -294,26 +294,28 @@ evaluateFields (typename Traits::EvalData workset)
         lambda = Albany::convertScalar<const ParamScalarT>(lambdaParam(0));
     }
 #ifdef OUTPUT_TO_SCREEN
-    Teuchos::RCP<Teuchos::FancyOStream> output(Teuchos::VerboseObjectBase::getDefaultOStream());
-    int procRank = Teuchos::GlobalMPISession::getRank();
-    int numProcs = Teuchos::GlobalMPISession::getNProc();
-    output->setProcRankAndSize (procRank, numProcs);
-    output->setOutputToRootOnly (0);
+    if (beta.fieldTag().dataLayout().name(2)=="QuadPoint") {
+      Teuchos::RCP<Teuchos::FancyOStream> output(Teuchos::VerboseObjectBase::getDefaultOStream());
+      int procRank = Teuchos::GlobalMPISession::getRank();
+      int numProcs = Teuchos::GlobalMPISession::getNProc();
+      output->setProcRankAndSize (procRank, numProcs);
+      output->setOutputToRootOnly (0);
 
-    if (!distributedLambda && printedLambda!=lambda)
-    {
-      *output << "[Basal Friction Coefficient" << PHX::print<EvalT>() << "] lambda = " << lambda << "\n";
-      printedLambda = lambda;
-    }
-    if (printedMu!=mu)
-    {
-      *output << "[Basal Friction Coefficient" << PHX::print<EvalT>() << "] mu = " << mu << "\n";
-      printedMu = mu;
-    }
-    if (printedQ!=power)
-    {
-      *output << "[Basal Friction Coefficient" << PHX::print<EvalT>() << "] power = " << power << "\n";
-      printedQ = power;
+      if (!distributedLambda && printedLambda!=lambda)
+      {
+        *output << "[Basal Friction Coefficient" << PHX::print<EvalT>() << "] lambda = " << lambda << "\n";
+        printedLambda = lambda;
+      }
+      if (printedMu!=mu)
+      {
+        *output << "[Basal Friction Coefficient" << PHX::print<EvalT>() << "] mu = " << mu << "\n";
+        printedMu = mu;
+      }
+      if (printedQ!=power)
+      {
+        *output << "[Basal Friction Coefficient" << PHX::print<EvalT>() << "] power = " << power << "\n";
+        printedQ = power;
+      }
     }
 #endif
 
@@ -372,10 +374,10 @@ evaluateFieldsSide (typename Traits::EvalData workset, ScalarT mu, ScalarT lambd
         break;
 
       case REGULARIZED_COULOMB:
-        for (int ipt=0; ipt<dim; ++ipt)
-        {
-          ScalarT q = u_norm(cell,side,ipt) / ( u_norm(cell,side,ipt) + lambda*ice_softness(cell,side)*std::pow(N(cell,side,ipt),n) );
-          beta(cell,side,ipt) = mu * N(cell,side,ipt) * std::pow( q, power) / u_norm(cell,side,ipt);
+        for (int ipt=0; ipt<dim; ++ipt) {
+          auto N_val = std::max(N(cell,side,ipt),EffPressureST(0.0));
+          ScalarT q = u_norm(cell,side,ipt) / ( u_norm(cell,side,ipt) + lambda*ice_softness(cell,side)*std::pow(N_val,n) );
+          beta(cell,side,ipt) = mu * N_val * std::pow( q, power) / u_norm(cell,side,ipt);
         }
         break;
 

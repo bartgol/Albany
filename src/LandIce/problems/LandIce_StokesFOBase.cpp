@@ -97,9 +97,6 @@ StokesFOBase (const Teuchos::RCP<Teuchos::ParameterList>& params_,
   vertically_averaged_velocity_name = params->sublist("Variables Names").get<std::string>("Vertically Averaged Velocity Name","vertically_averaged_velocity");
   flux_divergence_name        = params->sublist("Variables Names").get<std::string>("Flux Divergence Name" ,"flux_divergence");
 
-  // Mark the velocity as computed
-  is_computed_field[dof_names[0]] = true;
-
   // By default, we are not coupled to any other physics
   temperature_coupled = false;
   hydrology_coupled = false;
@@ -472,11 +469,20 @@ void StokesFOBase::setFieldsProperties ()
   // If the flow rate is given from file, we could just use RealType, but then we would need
   // to template ViscosityFO on 3 scalar types. For simplicity, we set it to be the same
   // of the temperature in ViscosityFO.
-  if (viscosity_use_corrected_temperature) {
-    setSingleFieldProperties(flow_factor_name, 0, FieldScalarType::MeshScalar | field_scalar_type[corrected_temperature_name], FieldLocation::Cell);
+
+  auto frt = params->sublist("LandIce Viscosity").get<std::string>("Flow Rate Type","INVALID");
+  FieldScalarType fr_st;
+  if (frt == "Temperature Based" || frt == "Uniform") {
+    is_computed_field[flow_factor_name] = true;
+    fr_st = viscosity_use_corrected_temperature
+          ? field_scalar_type[corrected_temperature_name]
+          : field_scalar_type[temperature_name];
   } else {
-    setSingleFieldProperties(flow_factor_name, 0, FieldScalarType::MeshScalar | field_scalar_type[temperature_name], FieldLocation::Cell);
+    // The field type of flow_factor should have been set while parsing input files.
+    fr_st = field_scalar_type[flow_factor_name];
   }
+
+  setSingleFieldProperties(flow_factor_name, 0, fr_st, FieldLocation::Cell);
 }
 
 void StokesFOBase::setupEvaluatorRequests ()
@@ -487,7 +493,7 @@ void StokesFOBase::setupEvaluatorRequests ()
   build_interp_ev[surface_height_name][InterpolationRequest::QP_VAL] = true; 
   // If not coupled with cism, we may have to compute the surface gradient ourselves
   build_interp_ev[surface_height_name][InterpolationRequest::GRAD_QP_VAL] = true; 
-  if (is_input_field[temperature_name]) {
+  if (is_input_field[temperature_name] && field_location[temperature_name]==FieldLocation::Node) {
     build_interp_ev[temperature_name][InterpolationRequest::CELL_VAL] = true;
   }
   if (is_input_field[stiffening_factor_name]) {
@@ -514,6 +520,7 @@ void StokesFOBase::setupEvaluatorRequests ()
       ss_build_interp_ev[ssName][effective_pressure_name][InterpolationRequest::QP_VAL ] = true;
     ss_build_interp_ev[ssName][effective_pressure_name][InterpolationRequest::GRAD_QP_VAL ] = true; 
     ss_build_interp_ev[ssName][effective_pressure_name][InterpolationRequest::CELL_TO_SIDE] = true; 
+    ss_build_interp_ev[ssName][flow_factor_name][InterpolationRequest::CELL_TO_SIDE] = true; 
 
     // For "Given Field" and "Exponent of Given Field" we also need to interpolate the given field at the quadrature points
     auto& bfc = it->sublist("Basal Friction Coefficient");

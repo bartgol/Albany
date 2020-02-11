@@ -188,16 +188,19 @@ void LandIce::ResponseSurfaceVelocityMismatch<EvalT, Traits>::evaluateFields(typ
 
       ScalarT t = 0;
       ScalarT data = 0;
-      if(scalarRMS)
+      if(scalarRMS) {
         for (int qp=0; qp<numSurfaceQPs; ++qp)
         {
           ScalarT diff2 = std::pow(velocity(cell, side, qp, 0)  - observedVelocity (cell, side, qp, 0),2) 
                                + std::pow(velocity(cell, side, qp, 1)  - observedVelocity (cell, side, qp, 1),2);
           ScalarT weightedDiff = std::sqrt(diff2)/observedVelocityMagnitudeRMS(cell, side, qp);
+          if (Albany::ADValue(diff2)==0.0) {
+            continue;
+          }
           ScalarT weightedDiff2 = std::pow(asinh(weightedDiff/ asinh_scaling)*asinh_scaling,2);
           t += weightedDiff2 * w_measure_surface(cell,side,qp);
         }
-      else
+      } else {
         for (int qp=0; qp<numSurfaceQPs; ++qp)
         {
           ParamScalarT refVel0 = asinh(observedVelocity (cell, side, qp, 0) / observedVelocityRMS(cell, side, qp, 0) / asinh_scaling);
@@ -215,6 +218,7 @@ void LandIce::ResponseSurfaceVelocityMismatch<EvalT, Traits>::evaluateFields(typ
           data *= asinh_scaling * asinh_scaling;
           t += data * w_measure_surface(cell,side,qp);
         }
+      }
 
       this->local_response_eval(cell, 0) += t*scaling;
       this->global_response_eval(0) += t*scaling;
