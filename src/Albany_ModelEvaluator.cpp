@@ -649,7 +649,7 @@ evalModelImpl(const Thyra_InArgs&  inArgs,
       if(opt_paramList.isParameter("Parameter Names")) {
         auto& param_names = *opt_paramList.get<Teuchos::RCP<std::vector<std::string>>>("Parameter Names");
         for (int k=0; k < param_names.size(); ++k) {
-          *out << param_names[k] << " has changed!" << std::endl;
+          //*out << param_names[k] << " has changed!" << std::endl;
           app->getPhxSetup()->init_unsaved_param(param_names[k]);
         }
       }
@@ -832,7 +832,7 @@ evalModelImpl(const Thyra_InArgs&  inArgs,
 
   // distributed df/dp
   for (int i=0; i<num_dist_param_vecs; i++) {
-	  const Teuchos::RCP<Thyra_LinearOp> dfdp_out = outArgs.get_DfDp(i+num_param_vecs).getLinearOp();
+    const Teuchos::RCP<Thyra_LinearOp> dfdp_out = outArgs.get_DfDp(i+num_param_vecs).getLinearOp();
     if (dfdp_out != Teuchos::null) {
       Teuchos::RCP<DistributedParameterDerivativeOp> dfdp_op =
         Teuchos::rcp_dynamic_cast<DistributedParameterDerivativeOp>(dfdp_out);
