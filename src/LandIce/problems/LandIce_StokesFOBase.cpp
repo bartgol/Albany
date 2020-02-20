@@ -271,6 +271,7 @@ StokesFOBase::getStokesFOBaseProblemParameters () const
   validPL->sublist("LandIce Field Norm", false, "");
   validPL->sublist("LandIce Physical Parameters", false, "");
   validPL->sublist("LandIce Noise", false, "");
+  validPL->sublist("LandIce Interpolation Requests", false, "");
   validPL->set<bool>("Use Time Parameter", false, "Solely to use Solver Method = Continuation");
   validPL->set<bool>("Print Stress Tensor", false, "Whether to save stress tensor in the mesh");
 
@@ -623,6 +624,52 @@ void StokesFOBase::setupEvaluatorRequests ()
     }
     if (is_ss_input_field[basalSideName]["observed_ice_thickness_RMS"]) {
       ss_build_interp_ev[basalSideName]["observed_ice_thickness_RMS"][InterpolationRequest::QP_VAL] = true;
+    }
+  }
+
+  // Finally, parse any additional requests the user may have. These may be
+  // given only for input files, which may be needed for some response evaluation
+  // that StokesFOBase is not aware of.
+  // Note: if the request causes a clash of evaluators (i.e., 2+ evaluators
+  //       are evaluating the same thing), then phalanx will generate an error
+  auto& user_requests = params->sublist("LandIce Interpolation Requests");
+  int num_requests = user_requests.get<int>("Number",0);
+  for (int i=0; i<num_requests; ++i) {
+    auto& pl = user_requests.sublist(Albany::strint("Request",i));
+    const auto& fname = pl.get<std::string>("Field Name");
+
+    const auto rank = str2rank(pl.get<std::string>("Field Rank"));
+    const auto loc  = str2e<FieldLocation>(pl.get<std::string>("Field Location"));
+    const auto st   = str2e<FieldScalarType>(pl.get<std::string>("Field Scalar Type"));
+
+    TEUCHOS_TEST_FOR_EXCEPTION (rank==-1 || loc==FieldLocation::INVALID || st==FieldScalarType::INVALID,
+                                Teuchos::Exceptions::InvalidParameter,
+                                "Error! Invalid specs for 'Request " + std::to_string(i) + "'.\n");
+
+
+    const auto& reqs = pl.get<Teuchos::Array<std::string>>("Requests");
+    std::string ss;
+    auto ss_req = pl.isParameter("Side Set Name");
+    if (ss_req) {
+      ss = pl.get<std::string>("Side Set Name");
+    }
+
+    using IR = InterpolationRequest;
+    for (const auto& req : reqs) {
+      auto r = str2e<InterpolationRequest>(req);
+      TEUCHOS_TEST_FOR_EXCEPTION (r==IR::INVALID,
+                                  Teuchos::Exceptions::InvalidParameter,
+                                  "Error! Invalid interpolation request ('" + req + "').\n");
+    
+      if (ss_req) {
+        ss_build_interp_ev[ss][fname][r] = true;
+      } else {
+        TEUCHOS_TEST_FOR_EXCEPTION (r==IR::CELL_TO_SIDE || r==IR::SIDE_TO_CELL,
+                                    Teuchos::Exceptions::InvalidParameter,
+                                    "Error! Request '" + req + "' requires specification of 'Side Set Name'.\n");
+        build_interp_ev[fname][r] = true;
+      }
+      setSingleFieldProperties(fname,rank,st,loc);
     }
   }
 }
