@@ -29,12 +29,18 @@ typename std::underlying_type<EnumType>::type etoi (const EnumType e) {
   return static_cast<typename std::underlying_type<EnumType>::type>(e);
 }
 
+// Convert string to enum. Not implemented, so compilation will fail unless T is
+// a supported enum (see below for specializations).
+template<typename T>
+inline T str2e (const std::string& s);
+
 // -------- LandIce boundary conditions -------- //
 
 enum class LandIceBC : int {
   BasalFriction,
   Lateral,
-  SynteticTest
+  SynteticTest,
+  INVALID
 };
 
 inline std::string bc2str (const LandIceBC bc) {
@@ -54,6 +60,18 @@ inline std::string bc2str (const LandIceBC bc) {
   TEUCHOS_UNREACHABLE_RETURN("");
 }
 
+template<>
+inline LandIceBC str2e<LandIceBC>(const std::string& s) {
+  using BC = LandIceBC;
+  for (auto bc : {BC::BasalFriction, BC::Lateral, BC::SynteticTest}) {
+    if (bc2str(bc)==s) {
+      return bc;
+    }
+  }
+  return BC::INVALID;
+}
+
+
 // -------- Problem automatic evaluator construction utilities -------- //
 
 // Enums used to indicate some properties of a field (used in automatic interpolation evalutors construction)
@@ -61,7 +79,8 @@ enum class FieldScalarType : int {
   Real        = 0,
   MeshScalar  = 1,
   ParamScalar = 2,
-  Scalar      = 3
+  Scalar      = 3,
+  INVALID
 };
 
 inline FieldScalarType& operator|= (FieldScalarType& st1,
@@ -93,6 +112,17 @@ inline std::string e2str (const FieldScalarType e) {
   TEUCHOS_UNREACHABLE_RETURN("");
 }
 
+template<>
+inline FieldScalarType str2e<FieldScalarType>(const std::string& s) {
+  using FST=FieldScalarType;
+  for (auto e : {FST::Scalar, FST::MeshScalar, FST::ParamScalar, FST::Real} ) {
+    if (e2str(e)==s) {
+      return e;
+    }
+  }
+  return FST::INVALID;
+}
+
 inline FieldScalarType operator| (const FieldScalarType& st1,
                                   const FieldScalarType& st2)
 {
@@ -104,7 +134,8 @@ inline FieldScalarType operator| (const FieldScalarType& st1,
 // Mesh entity where a field is located
 enum class FieldLocation : int {
   Cell,
-  Node
+  Node,
+  INVALID
 };
 
 inline std::string e2str (const FieldLocation e) {
@@ -115,6 +146,17 @@ inline std::string e2str (const FieldLocation e) {
   }
 
   TEUCHOS_UNREACHABLE_RETURN("");
+}
+
+template<>
+inline FieldLocation str2e<FieldLocation>(const std::string& s) {
+  using FL=FieldLocation;
+  for (auto e : {FL::Node, FL::Cell}) {
+    if (e2str(e)==s) {
+      return e;
+    }
+  }
+  return FL::INVALID;
 }
 
 inline std::string rank2str (const int rank) {
@@ -128,13 +170,23 @@ inline std::string rank2str (const int rank) {
   TEUCHOS_UNREACHABLE_RETURN("");
 }
 
+inline int str2rank (const std::string& s) {
+  return (s=="Scalar"
+            ? 0
+            : (s=="Vector"
+                 ? 1
+                 : (s=="Tensor" ? 2 : -1)));
+}
+
+
 // Enum used to indicate the interpolation request
 enum class InterpolationRequest {
   QP_VAL,
   GRAD_QP_VAL,
   CELL_VAL,
   CELL_TO_SIDE,
-  SIDE_TO_CELL
+  SIDE_TO_CELL,
+  INVALID
 };
 
 inline std::string e2str (const InterpolationRequest e) {
@@ -144,12 +196,22 @@ inline std::string e2str (const InterpolationRequest e) {
     case InterpolationRequest::CELL_VAL:      return "CELL_VAL";
     case InterpolationRequest::CELL_TO_SIDE:  return "CELL_TO_SIDE";
     case InterpolationRequest::SIDE_TO_CELL:  return "SIDE_TO_CELL";
-    default:                    return INVALID_STR;
+    default:                                  return INVALID_STR;
   }
 
   TEUCHOS_UNREACHABLE_RETURN("");
 }
 
+template<>
+inline InterpolationRequest str2e<InterpolationRequest>(const std::string& s) {
+  using IR=InterpolationRequest;
+  for (auto e : {IR::QP_VAL, IR::GRAD_QP_VAL, IR::CELL_VAL, IR::CELL_TO_SIDE, IR::SIDE_TO_CELL}) {
+    if (e2str(e)==s) {
+      return e;
+    }
+  }
+  return IR::INVALID;
+}
 
 // Enum used to request utility evaluators
 enum class UtilityRequest {
