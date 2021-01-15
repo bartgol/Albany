@@ -12,37 +12,37 @@ namespace Albany {
 // to be stored in some MPL type.
 struct NullType {};
 
-// template<typename... T>
-// struct TypeSet;
+template<typename... T>
+struct TypeSet;
 
-// template<typename T>
-// struct TypeSet<T> {
-//   template<typename S>
-//   static constexpr bool has () {
-//     return std::is_same<T,S>::value;
-//   }
+template<typename T>
+struct TypeSet<T> {
+  template<typename S>
+  static constexpr bool has () {
+    return std::is_same<T,S>::value;
+  }
 
-//   using type = std::tuple<T>;
+  using type = std::tuple<T>;
 
-//   static constexpr int size = 1;
-// };
+  static constexpr int size = 1;
+};
 
-// template<typename T, typename... Ts>
-// struct TypeSet<T,Ts...> {
-//   using tail = TypeSet<Ts...>;
+template<typename T, typename... Ts>
+struct TypeSet<T,Ts...> {
+  using tail = TypeSet<Ts...>;
 
-//   template<typename S>
-//   static constexpr bool has () {
-//     return std::is_same<T,S>::value || tail::template has<S>();
-//   }
+  template<typename S>
+  static constexpr bool has () {
+    return std::is_same<T,S>::value || tail::template has<S>();
+  }
 
-//   using type = typename std::conditional<tail::template has<T>(),
-//         typename tail::type,
-//         std::tuple<T,Ts...>
-//     >::type;
+  using type = typename std::conditional<tail::template has<T>(),
+        typename tail::type,
+        std::tuple<T,Ts...>
+    >::type;
 
-//   static constexpr int size = 1 + tail::size;
-// };
+  static constexpr int size = 1 + tail::size;
+};
 
 // A compile-time map of types, with each entry being
 // an std::pair<K,V>. The same Key may be present
@@ -75,25 +75,6 @@ struct CT_Map<std::pair<Key,Val>,T...> {
                         Val,
                         typename tail::template value_type<KT>>::type;
                         
-};
-
-// ScalarT -> MDField map
-template<typename EvalT, typename... Tags>
-struct FieldMap {
-  // The scalar types provided by EvalT
-  using ST = typename EvalT::ScalarT;
-  using PT = typename EvalT::ParamScalarT;
-  using MT = typename EvalT::MeshScalarT;
-
-  template<typename Scalar>
-  using FT = PHX::MDField<Scalar,Tags...>;
-
-  template<typename Scalar>
-  using entry = std::pair<Scalar,FT<Scalar>>;
-
-  using type = CT_Map<entry<ST>,entry<PT>,entry<MT>>;
-
-  // using FieldST = FT<ST>;
 };
 
 } // namespace Albany
