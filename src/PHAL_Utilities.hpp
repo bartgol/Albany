@@ -86,6 +86,11 @@ private:
   bool done_;
 };
 
+template<typename T>
+MDFieldIterator<T> mdFieldIterator (PHX::MDField<T>& f) {
+  return MDFieldIterator<T>(f);
+}
+
 //! Reduce on an MDField.
 template<typename T>
 void reduceAll(

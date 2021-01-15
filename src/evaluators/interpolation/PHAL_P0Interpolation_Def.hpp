@@ -15,13 +15,14 @@
 namespace PHAL {
 
 //**********************************************************************
-template<typename EvalT, typename Traits, typename ScalarT>
-P0InterpolationBase<EvalT, Traits, ScalarT>::
-P0InterpolationBase (const Teuchos::ParameterList& p,
-                     const Teuchos::RCP<Albany::Layouts>& dl)
+template<typename EvalT, typename Traits>
+P0Interpolation<EvalT, Traits>::
+P0Interpolation (const Teuchos::ParameterList& p,
+                 const Teuchos::RCP<Albany::Layouts>& dl)
 {
-  using FL  = Albany::FieldLocation;
-  using FRT = Albany::FieldRankType;
+  using FL  = FieldLocation;
+  using FRT = FieldRankType;
+  using FST = FieldScalarType;
 
   // Check if it is a sideset evaluation
   eval_on_side = false;
@@ -37,6 +38,7 @@ P0InterpolationBase (const Teuchos::ParameterList& p,
 
   loc  = p.get<FL>("Field Location");
   rank = p.get<FRT>("Field Rank Type");
+  fst  = p.get<FST>("Field Rank Type");
   point_layout = get_field_layout(rank,loc,dl);
   p0_layout = get_field_layout(rank,FL::Cell,dl);
 
@@ -50,12 +52,34 @@ P0InterpolationBase (const Teuchos::ParameterList& p,
   numNodes = eval_on_side ? dl->node_scalar->dimension(2) : dl->node_scalar->dimension(1);
 
   // Create input/output fields
-  field    = decltype(field)(p.get<std::string> ("Field Name"), point_layout);
-  field_p0 = decltype(field_p0)(p.get<std::string> ("Field P0 Name"), p0_layout);
-
-  this->addDependentField (field);
-  this->addEvaluatedField (field_p0);
-
+  auto name    = p.get<std::string>("Field Name");
+  auto name_p0 = p.get<std::string>("Field P0 Name");
+  switch (fst) {
+    case FST::Real:
+      field_rt    = decltype(field_rt)(name, point_layout);
+      field_rt_p0 = decltype(field_rt_p0)(name_p0, p0_layout);
+      this->addDependentField (field_rt);
+      this->addEvaluatedField (field_rt_p0);
+      break;
+    case FST::MeshScalar:
+      field_mt    = decltype(field_rt)(name, point_layout);
+      field_mt_p0 = decltype(field_rt_p0)(name_p0, p0_layout);
+      this->addDependentField (field_mt);
+      this->addEvaluatedField (field_mt_p0);
+      break;
+    case FST::ParamScalar:
+      field_pt    = decltype(field_rt)(name, point_layout);
+      field_pt_p0 = decltype(field_rt_p0)(name_p0, p0_layout);
+      this->addDependentField (field_pt);
+      this->addEvaluatedField (field_pt_p0);
+      break;
+    case FST::Scalar:
+      field_st    = decltype(field_rt)(name, point_layout);
+      field_st_p0 = decltype(field_rt_p0)(name_p0, p0_layout);
+      this->addDependentField (field_st);
+      this->addEvaluatedField (field_st_p0);
+      break;
+  }
 
   TEUCHOS_TEST_FOR_EXCEPTION (loc!=FL::Node && loc!=FL::QuadPoint, std::logic_error,
       "Error! P0 interpolation evaluator requires an input Node or QuadPoint field.\n");
@@ -93,8 +117,8 @@ P0InterpolationBase (const Teuchos::ParameterList& p,
   this->setName("P0Interpolation[" + p.get<std::string> ("Field Name") + "] "+PHX::print<EvalT>());
 }
 
-template<typename EvalT, typename Traits, typename ScalarT>
-void P0InterpolationBase<EvalT, Traits, ScalarT>::
+template<typename EvalT, typename Traits>
+void P0Interpolation<EvalT, Traits>::
 postRegistrationSetup(typename Traits::SetupData d,
                       PHX::FieldManager<Traits>& /* fm */)
 {
@@ -117,8 +141,8 @@ postRegistrationSetup(typename Traits::SetupData d,
   }
 }
 
-template<typename EvalT, typename Traits, typename ScalarT>
-void P0InterpolationBase<EvalT, Traits, ScalarT>::evaluateFields (typename Traits::EvalData workset)
+template<typename EvalT, typename Traits>
+void P0Interpolation<EvalT, Traits>::evaluateFields (typename Traits::EvalData workset)
 {
   if (eval_on_side) {
     evaluate_on_side(workset);
@@ -127,10 +151,10 @@ void P0InterpolationBase<EvalT, Traits, ScalarT>::evaluateFields (typename Trait
   }
 }
 
-template<typename EvalT, typename Traits, typename ScalarT>
-void P0InterpolationBase<EvalT, Traits, ScalarT>::evaluate_on_cell (typename Traits::EvalData workset)
+template<typename EvalT, typename Traits>
+void P0Interpolation<EvalT, Traits>::evaluate_on_cell (typename Traits::EvalData workset)
 {
-  using FRT = Albany::FieldRankType;
+  using FRT = FieldRankType;
   if (itype == CellAverage) {
     switch (rank) {
       case FRT::Scalar:
@@ -160,11 +184,11 @@ void P0InterpolationBase<EvalT, Traits, ScalarT>::evaluate_on_cell (typename Tra
   }
 }
 
-template<typename EvalT, typename Traits, typename ScalarT>
-void P0InterpolationBase<EvalT, Traits, ScalarT>::evaluate_on_side (typename Traits::EvalData workset)
+template<typename EvalT, typename Traits>
+void P0Interpolation<EvalT, Traits>::evaluate_on_side (typename Traits::EvalData workset)
 {
-  using FL  = Albany::FieldLocation;
-  using FRT = Albany::FieldRankType;
+  using FL  = FieldLocation;
+  using FRT = FieldRankType;
 
   if (workset.sideSets->find(sideSetName)==workset.sideSets->end()) {
     return;
@@ -297,7 +321,7 @@ void P0InterpolationBase<EvalT, Traits, ScalarT>::evaluate_on_side (typename Tra
 template<typename EvalT, typename Traits, typename ScalarT>
 void P0InterpolationBase<EvalT, Traits, ScalarT>::
 operator() (const Cell_Average_Scalar_Field_Tag&, const int& cell) const{
-  using FL = Albany::FieldLocation;
+  using FL = FieldLocation;
 
   ScalarT field_qp_device;
 
@@ -331,7 +355,7 @@ operator() (const Cell_Average_Scalar_Field_Tag&, const int& cell) const{
 template<typename EvalT, typename Traits, typename ScalarT>
 void P0InterpolationBase<EvalT, Traits, ScalarT>::
 operator() (const Cell_Average_Vector_Field_Tag&, const int& cell) const{
-  using FL = Albany::FieldLocation;
+  using FL = FieldLocation;
 
   ScalarT field_qp_device;
 
@@ -371,7 +395,7 @@ operator() (const Cell_Average_Vector_Field_Tag&, const int& cell) const{
 template<typename EvalT, typename Traits, typename ScalarT>
 void P0InterpolationBase<EvalT, Traits, ScalarT>::
 operator() (const Cell_Average_Tensor_Field_Tag&, const int& cell) const{
-  using FL = Albany::FieldLocation;
+  using FL = FieldLocation;
 
   ScalarT field_qp_device;
 

@@ -27,14 +27,14 @@ namespace PHAL
 
 */
 
-template<typename EvalT, typename Traits, typename ScalarT>
-class P0InterpolationBase : public PHX::EvaluatorWithBaseImpl<Traits>,
-                            public PHX::EvaluatorDerived<EvalT, Traits>
+template<typename EvalT, typename Traits>
+class P0Interpolation : public PHX::EvaluatorWithBaseImpl<Traits>,
+                        public PHX::EvaluatorDerived<EvalT, Traits>
 {
 public:
 
-  P0InterpolationBase (const Teuchos::ParameterList& p,
-                       const Teuchos::RCP<Albany::Layouts>& dl);
+  P0Interpolation (const Teuchos::ParameterList& p,
+                   const Teuchos::RCP<Albany::Layouts>& dl);
 
   void postRegistrationSetup (typename Traits::SetupData d,
                               PHX::FieldManager<Traits>& fm);
@@ -43,11 +43,16 @@ public:
 
 private:
 
+  using RT = RealType;
+  using MT = typename EvalT::MeshScalarT;
+  using PT = typename EvalT::ParamScalarT;
+  using ST = typename EvalT::ScalarT;
+
+  template<typename InT>
+  using OT = typename Albany::StrongestScalarType<InT,MT>::type;
+
   void evaluate_on_side (typename Traits::EvalData d);
   void evaluate_on_cell (typename Traits::EvalData d);
-
-  typedef typename EvalT::MeshScalarT MeshScalarT;
-  typedef typename Albany::StrongestScalarType<ScalarT,MeshScalarT>::type OutputScalarT;
 
   enum InterpolationType {
     ValueAtCellBarycenter,
@@ -61,9 +66,10 @@ private:
   int dim0;     // For rank1 and rank2 fields
   int dim1;     // For rank2 fields
 
-  Albany::FieldLocation loc;
-  Albany::FieldRankType rank;
-  InterpolationType  itype;
+  FieldLocation       loc;
+  FieldRankType       rank;
+  FieldScalarType     fst;
+  InterpolationType   itype;
 
   std::vector<PHX::DataLayout::size_type> dims;
 
@@ -76,12 +82,19 @@ private:
   MDFieldMemoizer<Traits> memoizer;
 
   // Input:
-  PHX::MDField<const ScalarT>       field;
-  PHX::MDField<const RealType>      BF;
-  PHX::MDField<const MeshScalarT>   w_measure;
+  PHX::MDField<const RT>    field_rt;
+  PHX::MDField<const MT>    field_mt;
+  PHX::MDField<const PT>    field_pt;
+  PHX::MDField<const ST>    field_st;
+
+  PHX::MDField<const RT>    BF;
+  PHX::MDField<const MT>    w_measure;
 
   // Output:
-  PHX::MDField<OutputScalarT>       field_p0;
+  PHX::MDField<OT<RT>>      field_rt_p0;
+  PHX::MDField<OT<MT>>      field_mt_p0;
+  PHX::MDField<OT<PT>>      field_pt_p0;
+  PHX::MDField<OT<ST>>      field_st_p0;
 
 public:
 
@@ -114,16 +127,6 @@ public:
   KOKKOS_INLINE_FUNCTION
   void operator() (const Cell_Barycenter_Tensor_Field_Tag& tag, const int& cell) const;
 };
-
-// Some shortcut names
-template<typename EvalT, typename Traits>
-using P0Interpolation = P0InterpolationBase<EvalT,Traits,typename EvalT::ScalarT>;
-
-template<typename EvalT, typename Traits>
-using P0InterpolationMesh = P0InterpolationBase<EvalT,Traits,typename EvalT::MeshScalarT>;
-
-template<typename EvalT, typename Traits>
-using P0InterpolationParam = P0InterpolationBase<EvalT,Traits,typename EvalT::ParamScalarT>;
 
 } // Namespace PHAL
 

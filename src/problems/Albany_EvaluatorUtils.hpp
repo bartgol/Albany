@@ -411,8 +411,8 @@ namespace Albany {
     virtual constructP0InterpolationEvaluator(
         const std::string& dof_name,
         const std::string& interpolationType = "Cell Average",
-        const FieldLocation loc = FieldLocation::Node,
-        const FieldRankType rank = FieldRankType::Scalar,
+        const PHAL::FieldLocation loc = PHAL::FieldLocation::Node,
+        const PHAL::FieldRankType rank = PHAL::FieldRankType::Scalar,
         const Teuchos::RCP<IntrepidBasis>& basis = Teuchos::null) const = 0;
 
     Teuchos::RCP< PHX::Evaluator<Traits> >
@@ -420,8 +420,8 @@ namespace Albany {
         const std::string& sideSetName,
         const std::string& dof_name,
         const std::string& interpolationType = "Cell Average",
-        const FieldLocation loc = FieldLocation::Node,
-        const FieldRankType rank = FieldRankType::Scalar,
+        const PHAL::FieldLocation loc = PHAL::FieldLocation::Node,
+        const PHAL::FieldRankType rank = PHAL::FieldRankType::Scalar,
         const Teuchos::RCP<IntrepidBasis>& basis = Teuchos::null) const = 0;
 
     // Convenience shortcuts for special cases of P0 interpolation
@@ -429,24 +429,24 @@ namespace Albany {
     constructBarycenterEvaluator(
         const std::string& dof_name,
         const Teuchos::RCP<IntrepidBasis>& basis,
-        const FieldRankType rank = FieldRankType::Scalar) const {
+        const PHAL::FieldRankType rank = PHAL::FieldRankType::Scalar) const {
       return constructP0InterpolationEvaluator(
-          dof_name,"Value At Cell Barycenter", FieldLocation::Node, rank, basis);
+          dof_name,"Value At Cell Barycenter", PHAL::FieldLocation::Node, rank, basis);
     }
     Teuchos::RCP< PHX::Evaluator<Traits> >
     constructBarycenterSideEvaluator(
         const std::string& ss_name,
         const std::string& dof_name,
         const Teuchos::RCP<IntrepidBasis>& basis,
-        const FieldRankType rank = FieldRankType::Scalar) const {
+        const PHAL::FieldRankType rank = PHAL::FieldRankType::Scalar) const {
       return constructP0InterpolationSideEvaluator(
-          ss_name, dof_name,"Value At Cell Barycenter", FieldLocation::Node, rank, basis);
+          ss_name, dof_name,"Value At Cell Barycenter", PHAL::FieldLocation::Node, rank, basis);
     }
     Teuchos::RCP< PHX::Evaluator<Traits> >
     constructCellAverageEvaluator(
         const std::string& dof_name,
-        const FieldLocation loc = FieldLocation::Node,
-        const FieldRankType rank = FieldRankType::Scalar) const {
+        const PHAL::FieldLocation loc = PHAL::FieldLocation::Node,
+        const PHAL::FieldRankType rank = PHAL::FieldRankType::Scalar) const {
       return constructP0InterpolationEvaluator(
           dof_name,"Cell Average", loc, rank);
     }
@@ -454,8 +454,8 @@ namespace Albany {
     constructCellAverageSideEvaluator(
         const std::string& ss_name,
         const std::string& dof_name,
-        const FieldLocation loc = FieldLocation::Node,
-        const FieldRankType rank = FieldRankType::Scalar) const {
+        const PHAL::FieldLocation loc = PHAL::FieldLocation::Node,
+        const PHAL::FieldRankType rank = PHAL::FieldRankType::Scalar) const {
       return constructP0InterpolationSideEvaluator(
           ss_name, dof_name,"Cell Average", loc, rank);
     }
@@ -813,8 +813,8 @@ namespace Albany {
     constructP0InterpolationEvaluator(
         const std::string& dof_name,
         const std::string& interpolationType = "Cell Average",
-        const FieldLocation loc = FieldLocation::Node,
-        const FieldRankType rank = FieldRankType::Scalar,
+        const PHAL::FieldLocation loc = PHAL::FieldLocation::Node,
+        const PHAL::FieldRankType rank = PHAL::FieldRankType::Scalar,
         const Teuchos::RCP<IntrepidBasis>& basis = Teuchos::null) const;
 
     Teuchos::RCP< PHX::Evaluator<Traits> >
@@ -822,8 +822,8 @@ namespace Albany {
         const std::string& sideSetName,
         const std::string& dof_name,
         const std::string& interpolationType = "Cell Average",
-        const FieldLocation loc = FieldLocation::Node,
-        const FieldRankType rank = FieldRankType::Scalar,
+        const PHAL::FieldLocation loc = PHAL::FieldLocation::Node,
+        const PHAL::FieldRankType rank = PHAL::FieldRankType::Scalar,
         const Teuchos::RCP<IntrepidBasis>& basis = Teuchos::null) const;
 
     //! Function to create parameter list for construction of ComputeBasisFunctions

@@ -7,10 +7,10 @@
 #ifndef LANDICE_SIMPLE_OPERATION_HPP
 #define LANDICE_SIMPLE_OPERATION_HPP 1
 
+#include <Teuchos_ParameterList.hpp>
+
 #include <cmath>
 #include <algorithm>
-
-#include "Albany_DataTypes.hpp"
 
 namespace LandIce
 {
@@ -18,11 +18,13 @@ namespace LandIce
 namespace UnaryOps
 {
 
-template<typename ScalarT>
 struct Scale
 {
-  void setup (const Teuchos::ParameterList& p) { factor = p.get<double>("Scaling Factor"); }
+  void setup (const Teuchos::ParameterList& p) {
+    factor = p.get<double>("Scaling Factor");
+  }
 
+  template<typename ScalarT>
   ScalarT operator() (const ScalarT& x) const {
     return factor*x;
   }
@@ -31,10 +33,13 @@ private:
   double factor;
 };
 
-template<typename ScalarT>
 struct Log
 {
-  void setup (const Teuchos::ParameterList& p) { a = p.isParameter("Factor") ? p.get<double>("Factor") : 0.0; }
+  void setup (const Teuchos::ParameterList& p) {
+    a = p.isParameter("Factor") ? p.get<double>("Factor") : 0.0;
+  }
+
+  template<typename ScalarT>
   ScalarT operator() (const ScalarT& x) const {
     return std::log(a*x);
   }
@@ -42,10 +47,13 @@ private:
   double a;
 };
 
-template<typename ScalarT>
 struct Exp
 {
-  void setup (const Teuchos::ParameterList& p) { tau = p.isParameter("Tau") ? p.get<double>("Tau") : 0.0; }
+  void setup (const Teuchos::ParameterList& p) {
+    tau = p.isParameter("Tau") ? p.get<double>("Tau") : 0.0;
+  }
+
+  template<typename ScalarT>
   ScalarT operator() (const ScalarT& x) const {
     return std::exp(tau*x);
   }
@@ -54,10 +62,13 @@ private:
   double tau;
 };
 
-template<typename ScalarT>
 struct LowPass
 {
-  void setup (const Teuchos::ParameterList& p) { threshold_up = p.get<double>("Upper Threshold"); }
+  void setup (const Teuchos::ParameterList& p) {
+    threshold_up = p.get<double>("Upper Threshold");
+  }
+
+  template<typename ScalarT>
   ScalarT operator() (const ScalarT& x) const {
     return std::min(x,threshold_up);
   }
@@ -66,10 +77,13 @@ private:
   double threshold_up;
 };
 
-template<typename ScalarT>
 struct HighPass
 {
-  void setup (const Teuchos::ParameterList& p) { threshold_lo = p.get<double>("Lower Threshold"); }
+  void setup (const Teuchos::ParameterList& p) {
+    threshold_lo = p.get<double>("Lower Threshold");
+  }
+
+  template<typename ScalarT>
   ScalarT operator() (const ScalarT& x) const {
     return std::max(x,threshold_lo);
   }
@@ -78,11 +92,14 @@ private:
   double threshold_lo;
 };
 
-template<typename ScalarT>
 struct BandPass
 {
-  void setup (const Teuchos::ParameterList& p) { threshold_lo = p.get<double>("Lower Threshold");
-                                                 threshold_up = p.get<double>("Upper Threshold"); }
+  void setup (const Teuchos::ParameterList& p) {
+    threshold_lo = p.get<double>("Lower Threshold");
+    threshold_up = p.get<double>("Upper Threshold");
+  }
+
+  template<typename ScalarT>
   ScalarT operator() (const ScalarT& x) const {
     return std::max(std::min(x,threshold_up),threshold_lo);
   }
@@ -97,77 +114,89 @@ private:
 namespace BinaryOps
 {
 
-template<typename ScalarT>
 struct Scale
 {
   void setup (const Teuchos::ParameterList& /*p*/) {}
-  ScalarT operator() (const ScalarT& x, const ScalarT& factor) const {
+  
+  template<typename Scalar1, typename Scalar2>
+  auto operator() (const Scalar1& x, const Scalar2& factor) const 
+  -> decltype(factor*x) {
     return factor*x;
   }
 };
 
-template<typename ScalarT>
 struct Sum
 {
   void setup (const Teuchos::ParameterList& /*p*/) {}
-  ScalarT operator() (const ScalarT& x, const ScalarT& y) const {
-    return y;
+  template<typename Scalar1, typename Scalar2>
+  auto operator() (const Scalar1& x, const Scalar2& y) const
+  -> decltype(x+y) {
+    return x+y;
   }
 };
 
-template<typename ScalarT>
 struct Log
 {
   void setup (const Teuchos::ParameterList& /*p*/) {}
-  ScalarT operator() (const ScalarT& x, const ScalarT& a) const {
+  template<typename ScalarT>
+  auto operator() (const ScalarT& x, const ScalarT& a) const
+  -> decltype(std::log(a*x)) {
     return std::log(a*x);
   }
 };
 
-template<typename ScalarT>
 struct Exp
 {
   void setup (const Teuchos::ParameterList& /*p*/) {}
-  ScalarT operator() (const ScalarT& x, const ScalarT& tau) const {
+  template<typename Scalar1, typename Scalar2>
+  auto operator() (const Scalar1& x, const Scalar2& tau) const
+  -> decltype(std::exp(tau*x)) {
     return std::exp(tau*x);
   }
 };
 
-template<typename ScalarT>
 struct LowPass
 {
   void setup (const Teuchos::ParameterList& /*p*/) {}
-  ScalarT operator() (const ScalarT& x, const ScalarT& threshold_up) const {
+  template<typename Scalar1, typename Scalar2>
+  auto operator() (const Scalar1& x, const Scalar1& threshold_up) const
+  -> decltype(std::min(threshold_up,x)) {
     return std::min(x,threshold_up);
   }
 };
 
-template<typename ScalarT>
 struct HighPass
 {
   void setup (const Teuchos::ParameterList& /*p*/) {}
-  ScalarT operator() (const ScalarT& x, const ScalarT& threshold_lo) const {
+  template<typename Scalar1, typename Scalar2>
+  auto operator() (const Scalar1& x, const Scalar2& threshold_lo) const
+  -> decltype(std::max(threshold_lo,x)) {
     return std::max(x,threshold_lo);
   }
 };
 
-template<typename ScalarT>
 struct BandPassFixedUpper
 {
-  void setup (const Teuchos::ParameterList& p) { threshold_up = p.get<double>("Upper Threshold"); }
-  ScalarT operator() (const ScalarT& x, const ScalarT& threshold_lo) const {
+  void setup (const Teuchos::ParameterList& p) {
+    threshold_up = p.get<double>("Upper Threshold");
+  }
+  template<typename Scalar1, typename Scalar2>
+  auto operator() (const Scalar1& x, const Scalar2& threshold_lo) const
+  -> decltype(std::max(std::min(x,1.0),threshold_lo)) {
     return std::max(std::min(x,threshold_up),threshold_lo);
-    return std::max(x,threshold_lo);
   }
 private:
   double threshold_up;
 };
 
-template<typename ScalarT>
 struct BandPassFixedLower
 {
-  void setup (const Teuchos::ParameterList& p) { threshold_lo = p.get<double>("Lower Threshold"); }
-  ScalarT operator() (const ScalarT& x, const ScalarT& threshold_up) const {
+  void setup (const Teuchos::ParameterList& p) {
+    threshold_lo = p.get<double>("Lower Threshold"); 
+  }
+  template<typename Scalar1, typename Scalar2>
+  auto operator() (const Scalar1& x, const Scalar2& threshold_up) const
+  -> decltype(std::max(std::min(x,threshold_up),1.0)) {
     return std::max(std::min(x,threshold_up),threshold_lo);
   }
 private:
@@ -179,10 +208,11 @@ private:
 namespace TernaryOps
 {
 
-template<typename ScalarT>
 struct BandPass
 {
-  ScalarT operator() (const ScalarT& x, const ScalarT& threshold_lo, const ScalarT& threshold_up) const {
+  template<typename Scalar1, typename Scalar2, typename Scalar3>
+  auto operator() (const Scalar1& x, const Scalar2& threshold_lo, const Scalar3& threshold_up) const
+  -> decltype(std::max(std::min(x,threshold_up),threshold_lo)) {
     return std::max(std::min(x,threshold_up),threshold_lo);
   }
 };

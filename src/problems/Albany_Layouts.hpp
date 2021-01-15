@@ -7,11 +7,13 @@
 #ifndef ALBANY_LAYOUTS_HPP
 #define ALBANY_LAYOUTS_HPP
 
-#include <map>
-#include <string>
+#include "PHAL_FieldsUtils.hpp"
 
 #include "Phalanx_DataLayout.hpp"
 #include "Teuchos_RCP.hpp"
+
+#include <map>
+#include <string>
 
 namespace Albany {
   /*!
@@ -162,55 +164,14 @@ namespace Albany {
     std::map<std::string,Teuchos::RCP<Layouts>> side_layouts;
   };
 
-// -------- Enums and utils to automatize layout specification -------- //
-
-// Define an invalid string in one place (to avoid typos-related bugs).
-constexpr const char* INVALID_STR = "__INVALID__";
-
-// Mesh entity where a field is located
-enum class FieldLocation : int {
-  Cell,
-  Node,
-  QuadPoint
-};
-
-inline std::string e2str (const FieldLocation e) {
-  switch (e) {
-    case FieldLocation::Node:       return "Node";
-    case FieldLocation::QuadPoint:  return "QuadPoint";
-    case FieldLocation::Cell:       return "Cell";
-  }
-  return INVALID_STR;
-}
-
-// Type of field (scalar, vector, gradient, tensor)
-// Note: gradient is just a vector with length equal to the mesh dimension
-enum class FieldRankType : int {
-  Scalar,
-  Vector,
-  Gradient,
-  Tensor
-};
-
-inline std::string e2str (const FieldRankType rank) {
-  switch (rank) {
-    case FieldRankType::Scalar:     return "Scalar";
-    case FieldRankType::Vector:     return "Vector";
-    case FieldRankType::Gradient:   return "Gradient";
-    case FieldRankType::Tensor:     return "Tensor";
-  }
-
-  return INVALID_STR;
-}
-
 // Get the field PHX layout from rank and location
 inline Teuchos::RCP<PHX::DataLayout>
-get_field_layout (const FieldRankType rank,
-                  const FieldLocation loc,
+get_field_layout (const PHAL::FieldRankType rank,
+                  const PHAL::FieldLocation loc,
                   const Teuchos::RCP<Albany::Layouts>& layouts)
 {
-  using FRT = FieldRankType;
-  using FL  = FieldLocation;
+  using FRT = PHAL::FieldRankType;
+  using FL  = PHAL::FieldLocation;
 
   Teuchos::RCP<PHX::DataLayout> fl;
   if (rank==FRT::Scalar) {
@@ -251,19 +212,6 @@ get_field_layout (const FieldRankType rank,
       "Error! Failed to create field layout.\n");
 
   return fl;
-}
-
-// Teuchos requires Teuchos::is_printable<T>::type and Teuchos::is_comparable<T>::type
-// to be std::true_type in order for T to be storable in a parameter list.
-// However, strong enums are not printable by default, so we need an overload for op<<
-template<typename T>
-typename
-std::enable_if<std::is_same<T,FieldLocation>::value ||
-               std::is_same<T,FieldRankType>::value,
-               std::ostream&>::type
-operator<< (std::ostream& out, const T t) {
-  out << e2str(t);
-  return out;
 }
 
 } // namespace Albany

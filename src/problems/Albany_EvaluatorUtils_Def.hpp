@@ -1018,8 +1018,8 @@ Teuchos::RCP< PHX::Evaluator<Traits> >
 EvaluatorUtilsImpl<EvalT,Traits,ScalarType>::constructP0InterpolationEvaluator(
     const std::string& dof_name,
     const std::string& interpolationType,
-    const FieldLocation loc,
-    const FieldRankType rank,
+    const PHAL::FieldLocation loc,
+    const PHAL::FieldRankType rank,
     const Teuchos::RCP<IntrepidBasis>& basis) const
 {
   Teuchos::RCP<Teuchos::ParameterList> p;
@@ -1029,8 +1029,8 @@ EvaluatorUtilsImpl<EvalT,Traits,ScalarType>::constructP0InterpolationEvaluator(
   p->set<std::string>("BF Name", "BF");
   p->set<std::string>("Field Name", dof_name);
   p->set<std::string>("Weighted Measure Name", "Weights");
-  p->set<FieldLocation>("Field Location", loc);
-  p->set<FieldRankType>("Field Rank Type", rank);
+  p->set<PHAL::FieldLocation>("Field Location", loc);
+  p->set<PHAL::FieldRankType>("Field Rank Type", rank);
   p->set<std::string>("Interpolation Type", interpolationType);
   p->set<Teuchos::RCP<IntrepidBasis>>("Intrepid2 Basis", basis);
 
@@ -1046,8 +1046,8 @@ EvaluatorUtilsImpl<EvalT,Traits,ScalarType>::constructP0InterpolationSideEvaluat
     const std::string& sideSetName,
     const std::string& dof_name,
     const std::string& interpolationType,
-    const FieldLocation loc,
-    const FieldRankType rank,
+    const PHAL::FieldLocation loc,
+    const PHAL::FieldRankType rank,
     const Teuchos::RCP<IntrepidBasis>& basis) const
 {
   TEUCHOS_TEST_FOR_EXCEPTION (dl->side_layouts.find(sideSetName)==dl->side_layouts.end(), std::runtime_error,
@@ -1060,8 +1060,8 @@ EvaluatorUtilsImpl<EvalT,Traits,ScalarType>::constructP0InterpolationSideEvaluat
   p->set<std::string>("BF Name", "BF "+sideSetName);
   p->set<std::string>("Field Name", dof_name);
   p->set<std::string>("Weighted Measure Name", "Weighted Measure "+sideSetName);
-  p->set<FieldLocation>("Field Location", loc);
-  p->set<FieldRankType>("Field Rank Type", rank);
+  p->set<PHAL::FieldLocation>("Field Location", loc);
+  p->set<PHAL::FieldRankType>("Field Rank Type", rank);
   p->set<std::string>("Side Set Name", sideSetName);
   p->set<std::string>("Interpolation Type", interpolationType);
   p->set<Teuchos::RCP<IntrepidBasis>>("Intrepid2 Basis", basis);
