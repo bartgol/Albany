@@ -18,7 +18,7 @@ StokesFOHydrology (const Teuchos::RCP<Teuchos::ParameterList>& params_,
                    const Teuchos::RCP<Teuchos::ParameterList>& discParams_,
                    const Teuchos::RCP<ParamLib>& paramLib_,
                    const int numDim_) :
-  StokesFOBase(params_, discParams_, paramLib_, numDim_)
+  StokesFOBase(params_, discParams_, paramLib_, numDim_, true)
 {
   // Figure out what kind of hydro problem we solve
   eliminate_h = params->sublist("LandIce Hydrology").get<bool>("Eliminate Water Thickness", false);
