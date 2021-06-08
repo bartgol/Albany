@@ -12,7 +12,12 @@
 #include "Albany_AbstractSTKMeshStruct.hpp"
 #include "Albany_SideSetSTKMeshStruct.hpp"
 #include "Albany_AbstractSTKFieldContainer.hpp"
+#include <Teuchos_RCPDecl.hpp>
+#include <stk_mesh/base/Field.hpp>
+#include <topology.hpp>
 
+////
+#include "Albany_STKDiscretization.hpp"
 namespace PHAL
 {
 
@@ -165,6 +170,12 @@ saveElemState(typename Traits::EvalData workset)
   TEUCHOS_TEST_FOR_EXCEPTION (dims.size()>1 && tag1!=PHX::print<Node>() && tag1!=PHX::print<Dim>() && tag1!=PHX::print<VecDim>(), std::logic_error,
                               "Error! Invalid field layout in SaveSideSetStateField.\n");
 
+  auto stk_ss_disk = Teuchos::rcp_dynamic_cast<Albany::STKDiscretization>(ss_disc);
+  const auto& bulkData2d = stk_ss_disk->getSTKBulkData();
+  const auto& metaData2d = stk_ss_disk->getSTKMetaData();
+  typedef typename Albany::AbstractSTKFieldContainer::VectorFieldType       VFT;
+  const auto& coords_field = metaData2d.get_field<VFT>(stk::topology::NODE_RANK,"coordinates");
+
   // Loop on the sides of this sideSet that are in this workset
   sideSet = workset.sideSetViews->at(sideSetName);
   for (int sideSet_idx = 0; sideSet_idx < sideSet.size; ++sideSet_idx)
@@ -218,6 +229,19 @@ saveElemState(typename Traits::EvalData workset)
           }
         } else {
           // side set cell vector/gradient
+          double bary[2] = {0,0};
+          auto sideCell = bulkData2d.get_entity(stk::topology::ELEM_RANK, ss_cell_GID);
+          auto nodes = bulkData2d.begin_nodes(sideCell);
+          auto nnodes = bulkData2d.num_nodes(sideCell);
+          for (int inode=0; inode<nnodes; ++inode) {
+            const auto& node = nodes[inode];
+            auto coords = stk::mesh::field_data(coords_field,node);
+            bary[0] += coords[0];
+            bary[1] += coords[1];
+          }
+          bary[0] /= nnodes;
+          bary[1] /= nnodes;
+          std::cout << "2d cell gid, coords: " << ss_cell_GID << ", [" << bary[0] << "," << bary[1] << "]\n";
           for (unsigned int idim=0; idim<dims[1]; ++idim)
           {
             state(ss_cell,(int) idim) = field(sideSet_idx,idim);
