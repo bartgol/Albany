@@ -47,6 +47,13 @@ DOFCellToSideBase(const Teuchos::ParameterList& p,
 
     layout = CELL_VECTOR;
   }
+  else if (layout_str=="Cell Vector Sideset")
+  {
+    val_cell = decltype(val_cell)(cell_field_name, dl->cell_vector);
+    val_side = decltype(val_side)(side_field_name, dl_side->cell_vector_sideset);
+
+    layout = CELL_VECTOR_SIDESET;
+  }
   else if (layout_str=="Cell Tensor")
   {
     val_cell = decltype(val_cell)(cell_field_name, dl->cell_tensor);
@@ -173,6 +180,19 @@ operator() (const CellScalarSideset_Tag&, const int& sideSet_idx) const {
 template<typename EvalT, typename Traits, typename ScalarT>
 KOKKOS_INLINE_FUNCTION
 void DOFCellToSideBase<EvalT, Traits, ScalarT>::
+operator() (const CellVectorSideset_Tag&, const int& sideSet_idx) const {
+
+  // Get the local data of side and cell
+  const int cell = sideSet.elem_LID(sideSet_idx);
+
+  for (int idim=0; idim<dimsArray[1]; ++idim) {
+    val_side(sideSet_idx,idim) = val_cell(cell,idim);
+  }
+}
+
+template<typename EvalT, typename Traits, typename ScalarT>
+KOKKOS_INLINE_FUNCTION
+void DOFCellToSideBase<EvalT, Traits, ScalarT>::
 operator() (const NodeScalarSideset_Tag&, const int& sideSet_idx) const {
 
   // Get the local data of side and cell
@@ -254,6 +274,9 @@ evaluateFields(typename Traits::EvalData workset)
         for (int i=0; i<dims[2]; ++i)
           val_side(cell,side,i) = val_cell(cell,i);
       }
+      break;
+    case CELL_VECTOR_SIDESET:
+      Kokkos::parallel_for(CellVectorSideset_Policy(0, sideSet.size), *this);
       break;
     case CELL_TENSOR:
       for (int sideSet_idx = 0; sideSet_idx < sideSet.size; ++sideSet_idx)
