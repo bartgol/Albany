@@ -63,7 +63,6 @@ private:
 
   unsigned int numSideNodes;
   unsigned int numSideQPs;
-  unsigned int sideDim;
   unsigned int vecDim;
   unsigned int vecDimFO;
 
