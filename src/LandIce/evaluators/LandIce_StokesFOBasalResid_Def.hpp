@@ -134,6 +134,11 @@ operator() (const StokesFOBasalResid_Tag&, const int& sideSet_idx) const {
 template<typename EvalT, typename Traits, typename BetaScalarT>
 void StokesFOBasalResid<EvalT, Traits, BetaScalarT>::evaluateFields (typename Traits::EvalData workset)
 {
+  static ScalarT printedH = -9999;
+  if (regularized && workset.wsIndex==0 && printedH != homotopyParam(0)) {
+    std::cout << "[FOBasalResid] homotopyParam: " << homotopyParam(0) << "\n";
+    printedH = homotopyParam(0);
+  }
 
   if (workset.sideSetViews->find(basalSideName)==workset.sideSetViews->end()) return;
 
