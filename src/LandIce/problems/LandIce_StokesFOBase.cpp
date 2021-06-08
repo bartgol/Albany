@@ -413,6 +413,8 @@ void StokesFOBase::parseInputFields ()
     // Request QP interpolation for all input nodal fields
     if (loc==FL::Node) {
       build_interp_ev[stateName][IReq::QP_VAL] = true;
+    }
+    if (loc==FL::Cell && !is_input_field[stateName]) {
       build_interp_ev[stateName][IReq::CELL_VAL] = true;
     }
   }
