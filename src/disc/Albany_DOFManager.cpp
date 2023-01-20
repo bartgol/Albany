@@ -36,7 +36,7 @@ void DOFManager::build ()
       "Error! DOFManager::build was already called.\n");
 
   // 1. Let base class build the GIDs
-  this->buildGlobalUnknowns ();
+  albanyBuildGlobalUnknowns ();
 
   // 2. Create dual view from base class device view
   using dview = DualView<const int**>;
@@ -294,6 +294,61 @@ buildVectorSpaces (const std::vector<GO>& owned,
   // 4. Build indexers
   m_indexer = createGlobalLocalIndexer (vs);
   m_ov_indexer = createGlobalLocalIndexer (ov_vs);
+}
+
+void DOFManager::
+albanyBuildGlobalUnknowns ()
+{
+  // Build connectivity
+  std::vector<std::pair<panzer::FieldType,Teuchos::RCP<const panzer::FieldPattern>>> tmp;
+  for (std::size_t i=0; i < fieldPatterns_.size(); ++i)
+    tmp.push_back(std::make_pair(fieldTypes_[i],fieldPatterns_[i]));
+  auto aggFieldPattern = Teuchos::rcp(new panzer::GeometricAggFieldPattern(tmp));
+  connMngr_->buildConnectivity(*aggFieldPattern);
+
+  // Grab GIDs from connectivity
+  const int numElems = m_conn_mgr->getElementsInBlock().size();
+  Teuchos::Array<GO> ownedOrGhosted;
+  elementGIDs_.resize(numElems);
+  elementBlockGIDCount_.resize(1);
+  for (int ielem=0; ielem<numElems; ++ielem) {
+    const int  ndofs = m_conn_mgr->getConnectivitySize(ielem);
+    const auto conn  = m_conn_mgr->getConnectivity(ielem);
+    elementGIDs_[ielem].resize(ndofs);
+    for (int idof=0; idof<ndofs; ++idof) {
+      ownedOrGhosted.push_back(conn[idof]);
+      elementGIDs_[ielem][idof] = conn[idof];
+    }
+    elementBlockGIDCount_[0] += ndofs;
+  }
+
+  // Create vector spaces and indexers
+  auto ov_vs = createVectorSpace(getComm(),ownedOrGhosted);
+  auto vs = createOneToOneVectorSpace(ov_vs);
+  m_indexer = createGlobalLocalIndexer(vs);
+  m_ov_indexer = createGlobalLocalIndexer(ov_vs);
+
+  // Store owned/ghosted indices vectors
+  owned_ = getGlobalElements(vs).toVector();
+  for (auto g : ownedOrGhosted) {
+    if (std::find(owned_.begin(),owned_.end(),g)==owned_.end()) {
+      ghosted_.push_back(g);
+    }
+  }
+
+  // Set local ids
+  std::vector<std::vector<LO>> elem_lids (numElems);
+  for (int ielem=0; ielem<numElems; ++ielem) {
+    auto gids = elementGIDs_[ielem];
+    elem_lids[ielem].reserve(gids.size());
+    for (auto g : gids) {
+      elem_lids[ielem].push_back(m_ov_indexer->getLocalElement(g));
+    }
+  }
+  setLocalIds(elem_lids);
+
+  // Set flag that some DOFManager getters check
+  buildConnectivityRun_ = true;
 }
 
 } // namespace Albany
