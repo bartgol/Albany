@@ -297,9 +297,11 @@ void StokesFOThickness::constructThicknessEvaluators (PHX::FieldManager<PHAL::Al
     fm0.template registerEvaluator<EvalT>(ev);
 
 
-    const std::string layout = e2str(FL::Node) + " Scalar";
-    ev = evalUtils.getPSTUtils().constructDOFCellToSideEvaluator(surface_height_name, "lateralside", layout, cellType, surface_height_name + "_lateralside");
-          fm0.template registerEvaluator<EvalT> (ev);
+    if (landice_bcs[LandIceBC::Lateral].size()>0) {
+      const std::string layout = e2str(FL::Node) + " Scalar";
+      ev = evalUtils.getPSTUtils().constructDOFCellToSideEvaluator(surface_height_name, "lateralside", layout, cellType, surface_height_name + "_lateralside");
+            fm0.template registerEvaluator<EvalT> (ev);
+    }
 
     //--- Compute actual thickness --- //
     p = Teuchos::rcp(new Teuchos::ParameterList("Update Thickness"));

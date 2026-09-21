@@ -25,17 +25,21 @@ ANONYMOUS:
         Type: Scalar Response
         Name: Surface Velocity Mismatch
     Dirichlet BCs:
-      SDBC on NS extruded_boundary_node_set_3 for DOF U0 prescribe Field: velocity
-      SDBC on NS extruded_boundary_node_set_3 for DOF U1 prescribe Field: velocity
+      SDBC on NS extruded_boundary_node_set_3 for DOF U0: 0.0
+      SDBC on NS extruded_boundary_node_set_3 for DOF U1: 0.0
+      # SDBC on NS extruded_boundary_node_set_3 for DOF U0 prescribe Field: velocity
+      # SDBC on NS extruded_boundary_node_set_3 for DOF U1 prescribe Field: velocity
     Neumann BCs: {}
     LandIce BCs:
-      Number: 2
+      Number: 1
       BC 0:
         Type: Basal Friction
         Side Set Name: basalside
         Basal Friction Coefficient:
           Type: Field
           Beta Field Name: basal_friction
+          # Type: Constant
+          # Beta: 1e7
       BC 1:
         Type: Lateral
         Cubature Degree: 4
@@ -55,7 +59,8 @@ ANONYMOUS:
       Glen's Law Homotopy Parameter: 0.3
       Glen's Law A: 2.400304414e-24            # [Pa^-n s^-1
       Glen's Law n: 3.0
-      Flow Rate Type: Temperature Based
+      # Flow Rate Type: Temperature Based
+      Flow Rate Type: Uniform
     Body Force:
       Type: FO INTERP SURF GRAD
   Discretization:
@@ -68,9 +73,9 @@ ANONYMOUS:
     #Surface Height Field Name: surface_height
     Use Glimmer Spacing: true
     Extrude Basal Fields: [ice_thickness, surface_height, bed_topography]
-    Interpolate Basal Layered Fields: [temperature,velocity]
+    # Interpolate Basal Layered Fields: [temperature,velocity]
     Required Fields Info:
-      Number Of Fields: 5
+      Number Of Fields: 3
       Field 0:
         Field Name: ice_thickness
         Field Type: Node Scalar
@@ -80,17 +85,17 @@ ANONYMOUS:
         Field Type: Node Scalar
         Field Origin: Mesh
       Field 2:
-        Field Name: temperature
-        Field Type: Node Scalar
-        Field Origin: Mesh
-      Field 3:
         Field Name: bed_topography 
         Field Type: Node Scalar
         Field Origin: Mesh
-      Field 4:
-        Field Name: velocity
-        Field Type: Node Vector
-        Field Origin: Mesh
+      # Field 3:
+      #   Field Name: velocity
+      #   Field Type: Node Vector
+      #   Field Origin: Mesh
+      # Field 4:
+      #   Field Name: temperature
+      #   Field Type: Node Scalar
+      #   Field Origin: Mesh
     Side Set Discretizations:
       Side Sets: [basalside, upperside]
       basalside:
@@ -126,7 +131,7 @@ ANONYMOUS:
           Verbose: true # write additional mesh adaptation info to stdout
           Effective Strain Name: sliding_velocity
         Required Fields Info:
-          Number Of Fields: 7
+          Number Of Fields: 5
           Field 0:
             Field Name: ice_thickness
             Field Type: Node Scalar
@@ -138,32 +143,32 @@ ANONYMOUS:
             Field Origin: File
             File Name: ../AsciiMeshes/Humboldt/surface_height.ascii
           Field 2:
-            Field Name: temperature
-            Field Type: Node Layered Scalar
-            Field Origin: File
-            Number Of Layers: 8
-            File Name: ../AsciiMeshes/Humboldt/nodal_temperature.ascii
-          Field 3:
             Field Name: basal_friction
             Field Type: Node Scalar
             Field Origin: File
             File Name: ../AsciiMeshes/Humboldt/basal_friction.ascii
-          Field 4:
+          Field 3:
             Field Name: bed_topography
             Field Type: Node Scalar
             Field Origin: File
             File Name: ../AsciiMeshes/Humboldt/bed_topography.ascii
-          Field 5:
-            Field Name: velocity
-            Field Origin: File
-            Field Type: Node Layered Vector
-            Number Of Layers: 2
-            Vector Dim: 2
-            File Name: ../AsciiMeshes/Humboldt/extruded_surface_velocity.ascii
-          Field 6:
+          Field 4:
             Field Name: sliding_velocity
             Field Type: Elem Scalar
             Field Usage: Output
+          # Field 5:
+          #   Field Name: velocity
+          #   Field Origin: File
+          #   Field Type: Node Layered Vector
+          #   Number Of Layers: 2
+          #   Vector Dim: 2
+          #   File Name: ../AsciiMeshes/Humboldt/extruded_surface_velocity.ascii
+          # Field 6:
+          #   Field Name: temperature
+          #   Field Type: Node Layered Scalar
+          #   Field Origin: File
+          #   Number Of Layers: 8
+          #   File Name: ../AsciiMeshes/Humboldt/nodal_temperature.ascii
       upperside:
         Required Fields Info:
           Number Of Fields: 2
