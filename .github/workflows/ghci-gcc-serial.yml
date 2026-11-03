@@ -12,6 +12,10 @@ permissions:
 
 jobs:
   debug:
+    strategy:
+      fail-fast: false
+      matrix:
+        rep: [1, 2, 3]
     runs-on: [ubuntu-latest]
     container:
       image: ghcr.io/sandialabs/albany:gcc-12-serial
@@ -51,6 +55,8 @@ jobs:
           echo "TRILINOS_ROOT=${TRILINOS_ROOT}"
           ls ${TRILINOS_ROOT}/include/Trilinos_version.h 2>/dev/null && grep -m3 "TRILINOS_MAJOR\|TRILINOS_MINOR\|Trilinos_VERSION" ${TRILINOS_ROOT}/include/Trilinos_version.h
           echo "Image digest info:"; cat /etc/os-release | head -2
+          echo "CPU: $(grep -m1 'model name' /proc/cpuinfo)"
+          echo "CPUFLAGS: $(grep -m1 flags /proc/cpuinfo | grep -o 'avx[0-9a-z_]*\|fma' | sort -u | tr '\n' ' ')"
       - name: Build Albany
         run: |
           cd ${GITHUB_WORKSPACE}/albany/build
@@ -58,7 +64,7 @@ jobs:
       - name: Repeat the test
         run: |
           cd ${GITHUB_WORKSPACE}/albany/build
-          for i in $(seq 1 15); do
+          for i in $(seq 1 3); do
             echo "=== repeat $i"
             ctest -R 'corePDEs_AdvDiff_2d_adapt_omegah' --output-on-failure 2>&1 \
               | grep -E "Test +#|Response Test|^ +-?[0-9]\.[0-9]+e[-+][0-9]+$|MeanValue|tests passed" || true
